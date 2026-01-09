@@ -1,0 +1,73 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Личный кабинет — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Личный кабинет</p>
+    <h1 class="page-hero__title">Ваши подписки</h1>
+    <p class="page-hero__subtitle">Управляйте инструментами и следите за сроками подписок. Продлевайте активные подписки и восстанавливайте доступ к неактивным.</p>
+  </section>
+
+  <section class="section">
+    <div class="subscriptions-alert" id="subscriptionsAlert" hidden>
+      <div class="subscriptions-alert__icon">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div class="subscriptions-alert__content">
+        <h3 class="subscriptions-alert__title">Подписки заканчиваются в ближайшее время</h3>
+        <p class="subscriptions-alert__text">У вас есть подписки, которые истекают в течение 5 дней. Продлите их, чтобы не потерять доступ к инструментам.</p>
+        <ul class="subscriptions-alert__list" data-alert-list></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="subscriptions-controls">
+      <div class="subscriptions-filter">
+        <label class="form__field">
+          <span>Статус</span>
+          <select id="subscriptionsStatusFilter" class="form__field select">
+            <option value="all">Все подписки</option>
+            <option value="active">Активные</option>
+            <option value="inactive">Неактивные</option>
+            <option value="expiring-week">Истекают на следующей неделе</option>
+            <option value="expiring-month">Истекают в этом месяце</option>
+          </select>
+        </label>
+        <label class="form__field">
+          <span>Маркетплейс</span>
+          <select id="subscriptionsMarketFilter" class="form__field select">
+            <option value="all">Все маркетплейсы</option>
+            <option value="Wildberries">Wildberries</option>
+            <option value="OZON">OZON</option>
+          </select>
+        </label>
+      </div>
+      <button class="button button--secondary" id="exportSubscriptions" aria-label="Выгрузить в CSV/Excel">
+        <i class="fa-solid fa-download"></i>
+        <span>Выгрузить в CSV/Excel</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="subscriptions-grid" id="subscriptionsGrid">
+      <!-- Подписки будут добавлены через JavaScript -->
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="subscriptions-actions">
+      <a class="button button--primary" href="{% url 'content:index' %}#configurator">
+        <i class="fa-solid fa-plus"></i>
+        <span>Добавить инструменты</span>
+      </a>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/dashboard.js' %}" defer></script>
+{% endblock %}

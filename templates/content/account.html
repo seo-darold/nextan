@@ -1,0 +1,81 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Аккаунт — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Аккаунт</p>
+    <h1 class="page-hero__title">Настройки профиля</h1>
+    <p class="page-hero__subtitle">Измените данные вашего аккаунта</p>
+  </section>
+
+  <section class="section">
+    <form class="account-form form form--stacked">
+      <div class="account-form__section">
+        <h2 class="account-form__section-title">Личные данные</h2>
+        
+        <label class="form__field">
+          <span>Имя</span>
+          <input type="text" value="Иван" placeholder="Ваше имя" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Фамилия</span>
+          <input type="text" value="Петров" placeholder="Ваша фамилия">
+        </label>
+        
+        <label class="form__field">
+          <span>Компания</span>
+          <input type="text" value="ООО «Торговый дом»" placeholder="Название компании">
+        </label>
+      </div>
+
+      <div class="account-form__section">
+        <h2 class="account-form__section-title">Контактные данные</h2>
+        
+        <label class="form__field">
+          <span>Email (логин)</span>
+          <input type="email" value="ivan.petrov@company.ru" placeholder="email@company.ru" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Телефон</span>
+          <input type="tel" value="+7 999 123-45-67" placeholder="+7 999 000-00-00">
+        </label>
+      </div>
+
+      <div class="account-form__section">
+        <h2 class="account-form__section-title">Безопасность</h2>
+        
+        <label class="form__field">
+          <span>Текущий пароль</span>
+          <input type="password" placeholder="••••••••" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Новый пароль</span>
+          <input type="password" placeholder="••••••••">
+        </label>
+        
+        <label class="form__field">
+          <span>Подтвердите новый пароль</span>
+          <input type="password" placeholder="••••••••">
+        </label>
+      </div>
+      
+      <div class="account-form__section">
+        <p class="account-form__hint">Оставьте поля пароля пустыми, если не хотите менять пароль</p>
+      </div>
+
+      <div class="account-form__actions">
+        <button type="submit" class="button button--primary">Сохранить изменения</button>
+        <button type="button" class="button button--secondary">Отмена</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/account.js' %}" defer></script>
+{% endblock %}

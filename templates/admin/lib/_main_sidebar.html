@@ -1,0 +1,9 @@
+{% extends 'adminlte/lib/_main_sidebar.html' %}
+{% load admin_menu %}
+
+{% block logo_text %}<span class="brand-text font-weight-light">Next Admin</span>{% endblock %}
+
+{% block nav_links %}
+    {% autoescape off %}{% menu %}{% endautoescape %}
+{% endblock nav_links %}
+

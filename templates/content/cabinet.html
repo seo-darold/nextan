@@ -1,0 +1,132 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Кабинеты — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Кабинеты</p>
+    <h1 class="page-hero__title">Подключенные кабинеты</h1>
+    <p class="page-hero__subtitle">Управляйте подключенными кабинетами маркетплейсов</p>
+  </section>
+
+  <section class="section">
+    <div class="cabinet-actions">
+      <button class="button button--primary" data-cabinet-modal-open="add-cabinet-modal">
+        <i class="fa-solid fa-plus"></i>
+        <span>Подключить новый кабинет</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="cabinet-grid" id="cabinetGrid">
+      <!-- Карточки кабинетов будут добавлены через JavaScript -->
+    </div>
+  </section>
+
+  <!-- Модальное окно для подключения нового кабинета -->
+  <div class="modal" id="add-cabinet-modal" role="dialog" aria-labelledby="add-cabinet-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-cabinet-modal-close></div>
+    <div class="modal__content modal__content--large">
+      <button class="modal__close" aria-label="Закрыть" data-cabinet-modal-close>×</button>
+      <h2 class="modal__title" id="add-cabinet-modal-title">Подключить новый кабинет</h2>
+      
+      <form class="form form--stacked modal__form" id="addCabinetForm">
+        <label class="form__field">
+          <span>Название кабинета</span>
+          <input type="text" name="cabinetName" placeholder="Мой кабинет OZON" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Название магазина</span>
+          <input type="text" name="shopName" placeholder="Название магазина" required>
+        </label>
+        
+        <div class="form__field">
+          <span>Маркетплейс</span>
+          <div class="radio-group">
+            <label class="radio">
+              <input type="radio" name="marketplace" value="OZON" required>
+              <span>OZON</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="marketplace" value="WB" required>
+              <span>WB</span>
+            </label>
+          </div>
+        </div>
+        
+        <label class="form__field">
+          <span>API ключ</span>
+          <input type="text" name="apiKey" placeholder="Введите API ключ" required>
+        </label>
+        
+        <!-- Поля для OZON -->
+        <div id="ozonFields" style="display: none;">
+          <label class="form__field">
+            <span>Client ID (для Seller API OZON)</span>
+            <input type="text" name="ozonSellerClientId" placeholder="Введите Client ID">
+          </label>
+          
+          <label class="form__field">
+            <span>Client ID (для Performance API OZON)</span>
+            <input type="text" name="ozonPerformanceClientId" placeholder="Введите Client ID">
+          </label>
+          
+          <label class="form__field">
+            <span>Client secret (Performance API OZON)</span>
+            <input type="text" name="ozonPerformanceClientSecret" placeholder="Введите Client secret">
+          </label>
+        </div>
+        
+        <!-- Поля для WB -->
+        <div id="wbFields" style="display: none;">
+          <div class="form__field">
+            <span>Подключен ли Джем</span>
+            <div class="radio-group">
+              <label class="radio">
+                <input type="radio" name="gemConnected" value="yes">
+                <span>Да</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="gemConnected" value="no">
+                <span>Нет</span>
+              </label>
+            </div>
+          </div>
+          
+          <label class="form__field">
+            <span>Количество артикулов для одной рекламной кампании</span>
+            <input type="number" name="articlesPerCampaign" placeholder="Введите количество" min="1">
+          </label>
+        </div>
+        
+        <div class="modal__actions">
+          <button type="submit" class="button button--primary button--block">Подключить кабинет</button>
+          <button type="button" class="button button--secondary button--block" data-cabinet-modal-close>Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно об успехе -->
+  <div class="modal" id="success-modal" role="dialog" aria-labelledby="success-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-cabinet-success-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-cabinet-success-modal-close>×</button>
+      <div class="success-modal__content">
+        <div class="success-modal__icon">✓</div>
+        <h2 class="modal__title" id="success-modal-title">Кабинет успешно подключен</h2>
+        <p class="success-modal__text">Ваш кабинет был успешно подключен и готов к использованию.</p>
+        <button class="button button--primary button--block" data-cabinet-success-modal-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/cabinet.js' %}" defer></script>
+{% endblock %}
+
+

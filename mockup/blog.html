@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Блог — НекстАналитика</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="page">
+  <header class="header header--alt">
+    <div class="header__inner">
+      <a class="header__logo" href="index.html">
+        <img class="header__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+      </a>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="navList" aria-label="Открыть меню">
+          <span class="nav__toggle-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line class="nav__toggle-line nav__toggle-line--top" x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--middle" x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--bottom" x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <ul class="nav__list" id="navList">
+          <li class="nav__item"><a class="nav__link" href="index.html">Главная</a></li>
+          <li class="nav__item"><a class="nav__link" href="about.html">О нас</a></li>
+          <li class="nav__item"><a class="nav__link" href="blog.html" aria-current="page">Блог</a></li>
+          <li class="nav__item"><a class="nav__link" href="contacts.html">Контакты</a></li>
+          <li class="nav__item nav__item--actions">
+            <div class="nav__actions">
+              <button class="nav__action nav__action--login" aria-label="Личный кабинет" data-modal-open="login-modal">
+                <span class="nav__action-icon" aria-hidden="true">👤</span>
+                <span class="nav__action-text">Личный кабинет</span>
+              </button>
+              <a class="nav__action nav__action--cart" href="cart.html" aria-label="Корзина">
+                <span class="nav__action-icon" aria-hidden="true">🛒</span>
+                <span class="nav__action-text">Корзина</span>
+                <span class="nav__action-badge" data-cart-total="0">0 ₽</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <button class="header__login" aria-label="Войти в личный кабинет" data-modal-open="login-modal">
+          <span class="header__login-icon" aria-hidden="true">👤</span>
+        </button>
+        <a class="cart-indicator" href="cart.html" aria-label="Корзина">
+          <span class="cart-indicator__icon" aria-hidden="true">🛒</span>
+          <span class="cart-indicator__value" data-cart-total="0">0 ₽</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="section page-hero page-hero--extra-top">
+      <h1 class="page-hero__title">Экспертиза аналитики маркетплейсов</h1>
+      <p class="page-hero__subtitle">Обзоры кейсов, аналитика категорий, инструкции по Power BI и развёртыванию дашбордов.</p>
+    </section>
+
+    <section class="section blog-list" id="blog">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Свежие статьи</h2>
+      </div>
+      <div class="blog-list__grid" data-blog-grid></div>
+      <div class="blog-list__actions">
+        <button class="button button--secondary" data-blog-more>Показать ещё</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a class="footer__logo" href="index.html" aria-label="НекстАналитика">
+            <img class="footer__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+          </a>
+          <div class="footer__social-links footer__social-links--main">
+            <a href="#" class="footer__social-link footer__social-link--telegram" aria-label="Telegram" title="Telegram">
+              <i class="fa-brands fa-telegram"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--whatsapp" aria-label="WhatsApp" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--viber" aria-label="Viber" title="Viber">
+              <i class="fa-brands fa-viber"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--vk" aria-label="ВКонтакте" title="ВКонтакте">
+              <i class="fa-brands fa-vk"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--youtube" aria-label="YouTube" title="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Навигация</h3>
+          <ul class="footer__list">
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="about.html">О нас</a></li>
+            <li><a href="blog.html">Блог</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Документы</h3>
+          <ul class="footer__list">
+            <li><a href="#">Политика конфиденциальности</a></li>
+            <li><a href="#">Пользовательское соглашение</a></li>
+            <li><a href="#">Реквизиты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col footer__col--contacts">
+          <h3 class="footer__title">Контакты</h3>
+          <div class="footer__contacts">
+            <div class="footer__contact-item">
+              <a href="tel:+78001234567" class="footer__contact-link footer__contact-link--phone">
+                <i class="fa-solid fa-phone"></i>
+                <span>+7 800 123-45-67</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:sales@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>sales@pulsebi.ru</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:support@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>support@pulsebi.ru</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 НекстАналитика</p>
+    </div>
+  </footer>
+
+  <div class="modal" id="login-modal" role="dialog" aria-labelledby="login-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="login-modal-title">Вход в личный кабинет</h2>
+      
+      <form class="form form--stacked modal__form">
+        <label class="form__field">
+          <span>Email или логин</span>
+          <input type="text" placeholder="name@company.ru" required>
+        </label>
+        <label class="form__field">
+          <span>Пароль</span>
+          <input type="password" placeholder="••••••••" required>
+        </label>
+        <button type="submit" class="button button--primary button--block">Войти</button>
+      </form>
+
+      <div class="modal__divider">
+        <span>или</span>
+      </div>
+
+      <div class="modal__social">
+        <button class="button button--social button--social-vk">
+          <span>VK ID</span>
+        </button>
+        <button class="button button--social button--social-google">
+          <span>Google</span>
+        </button>
+        <button class="button button--social button--social-sber">
+          <span>Сбер ID</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js" defer></script>
+</body>
+</html>
+
+

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} — НекстАналитика{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section article-hero">
+  <nav class="breadcrumbs" aria-label="Навигация по сайту">
+    <ol>
+      <li><a href="{% url 'content:index' %}">Главная</a></li>
+      <li><a href="{% url 'blog:list' %}">Блог</a></li>
+      <li aria-current="page">Статья</li>
+    </ol>
+  </nav>
+  <h1 class="page-hero__title">{{ post.title }}</h1>
+  <div class="article-hero__meta">
+    <span>{{ post.published_at|date:"d F Y" }}</span>
+    <span>•</span>
+    <span>{{ post.reading_time }} минут чтения</span>
+    {% if post.author_name %}
+    <span>•</span>
+    <span>Автор: {{ post.author_name }}</span>
+    {% endif %}
+  </div>
+</section>
+
+<article class="section article">
+  <div class="article__content">
+    {{ post.content|safe }}
+  </div>
+</article>
+
+{% if related_posts %}
+<section class="section related-articles">
+  <div class="section-heading">
+    <h2 class="section-heading__title">Что ещё почитать</h2>
+  </div>
+  <div class="related-articles__grid">
+    {% for related_post in related_posts %}
+    <article class="related-card">
+      <a href="{% url 'blog:post_detail' related_post.slug %}" class="related-card__link">
+        <div class="related-card__header">
+          {% if related_post.category %}
+          <span class="related-card__category">{{ related_post.category.name }}</span>
+          {% endif %}
+          <span class="related-card__date">{{ related_post.reading_time }} мин</span>
+        </div>
+        <h3 class="related-card__title">{{ related_post.title }}</h3>
+        <p class="related-card__excerpt">{{ related_post.excerpt }}</p>
+        <div class="related-card__footer">
+          <span class="related-card__read-more">Читать статью</span>
+          <i class="fa-solid fa-arrow-right related-card__arrow"></i>
+        </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+

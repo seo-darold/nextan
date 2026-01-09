@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Контакты — НекстАналитика{% endblock %}
+{% block body_class %}page-contacts{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section contact-layout">
+  <div class="contact-layout__column contact-layout__column--form">
+    <div class="contact-form-wrapper">
+      <h2 class="contact-form__title">Напишите нам</h2>
+      <p class="contact-form__description">Заполните форму, и мы свяжемся с вами в течение рабочего часа</p>
+      {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {{ message }}
+        </div>
+        {% endfor %}
+      {% endif %}
+      <form class="form form--stacked contact-form" method="post" action="{% url 'content:contact_submit' %}">
+        {% csrf_token %}
+        <label class="form__field">
+          <span>{{ form.name.label }}</span>
+          {{ form.name }}
+          {% if form.name.errors %}
+          <span class="form__error">{{ form.name.errors }}</span>
+          {% endif %}
+        </label>
+        <label class="form__field">
+          <span>{{ form.email.label }}</span>
+          {{ form.email }}
+          {% if form.email.errors %}
+          <span class="form__error">{{ form.email.errors }}</span>
+          {% endif %}
+        </label>
+        <label class="form__field">
+          <span>{{ form.company.label }}</span>
+          {{ form.company }}
+          {% if form.company.errors %}
+          <span class="form__error">{{ form.company.errors }}</span>
+          {% endif %}
+        </label>
+        <label class="form__field">
+          <span>{{ form.comment.label }}</span>
+          {{ form.comment }}
+          {% if form.comment.errors %}
+          <span class="form__error">{{ form.comment.errors }}</span>
+          {% endif %}
+        </label>
+        
+        <div class="form__field">
+          <div class="checkbox-group">
+            <label class="checkbox">
+              <input type="checkbox" name="agree_personal_data" id="agree_personal_data" required>
+              <span>Я согласен на обработку персональных данных</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="agree_marketing" id="agree_marketing" required>
+              <span>Я согласен с политикой отправки рекламных сообщений</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="agree_cookies" id="agree_cookies" required>
+              <span>Я согласен на использование файлов cookie</span>
+            </label>
+          </div>
+          <span class="form__error form__error--checkboxes" id="checkboxes-error" style="display: none;"></span>
+        </div>
+        
+        <button class="button button--primary button--block" type="submit">Отправить</button>
+      </form>
+      
+      <!-- Оверлей загрузки -->
+      <div class="contact-form-overlay" id="contact-form-overlay">
+        <div class="contact-form-spinner"></div>
+      </div>
+    </div>
+  </div>
+  <div class="contact-layout__column contact-layout__column--info">
+    {% if company_info %}
+    <div class="contact-info">
+      {% if company_info.phone %}
+      <div class="contact-info__item">
+        <div class="contact-info__content">
+          <h3 class="contact-info__label">Телефон</h3>
+          <a href="tel:{{ company_info.phone }}" class="contact-info__value">{{ company_info.phone }}</a>
+          {% if company_info.working_hours %}
+          <p class="contact-info__meta">{{ company_info.working_hours }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if company_info.telegram_link or company_info.whatsapp_link or company_info.viber_link %}
+      <div class="contact-info__divider"></div>
+
+      <div class="contact-info__item">
+        <div class="contact-info__content">
+          <h3 class="contact-info__label">Мессенджеры</h3>
+          <div class="contact-info__messengers">
+            {% if company_info.telegram_link %}
+            <a href="{{ company_info.telegram_link }}" class="contact-info__messenger" aria-label="Telegram" title="Telegram">
+              <i class="fa-brands fa-telegram"></i>
+              <span>Telegram</span>
+            </a>
+            {% endif %}
+            {% if company_info.whatsapp_link %}
+            <a href="{{ company_info.whatsapp_link }}" class="contact-info__messenger" aria-label="WhatsApp" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+              <span>WhatsApp</span>
+            </a>
+            {% endif %}
+            {% if company_info.viber_link %}
+            <a href="{{ company_info.viber_link }}" class="contact-info__messenger" aria-label="Viber" title="Viber">
+              <i class="fa-brands fa-viber"></i>
+              <span>Viber</span>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if company_info.email_sales or company_info.email_support or company_info.email_hr %}
+      <div class="contact-info__divider"></div>
+
+      <div class="contact-info__item">
+        <div class="contact-info__content">
+          <h3 class="contact-info__label">Email</h3>
+          <div class="contact-info__emails">
+            {% if company_info.email_sales %}
+            <a href="mailto:{{ company_info.email_sales }}" class="contact-info__email">{{ company_info.email_sales }}</a>
+            {% endif %}
+            {% if company_info.email_support %}
+            <a href="mailto:{{ company_info.email_support }}" class="contact-info__email">{{ company_info.email_support }}</a>
+            {% endif %}
+            {% if company_info.email_hr %}
+            <a href="mailto:{{ company_info.email_hr }}" class="contact-info__email">{{ company_info.email_hr }}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Модальное окно успешной отправки -->
+<div class="modal" id="contact-success-modal" role="dialog" aria-labelledby="contact-success-title" aria-hidden="true">
+  <div class="modal__overlay" data-modal-close></div>
+  <div class="modal__content">
+    <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+    <div class="modal__icon">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h2 class="modal__title" id="contact-success-title">Сообщение успешно отправлено!</h2>
+    <p class="modal__message">Спасибо за обращение. Мы свяжемся с вами в ближайшее время.</p>
+    <button class="button button--primary button--block" data-modal-close>Закрыть</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'assets/js/contacts.js' %}" defer></script>
+{% endblock %}
+

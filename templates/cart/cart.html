@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Корзина — НекстАналитика{% endblock %}
+{% block body_class %}page-cart{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section page-hero">
+  <h1 class="page-hero__title">Выбранные дашборды и опции</h1>
+  <p class="page-hero__subtitle">Можете корректировать настройки — сумма пересчитывается автоматически.</p>
+</section>
+
+<section class="section cart">
+  <div class="cart__list" data-cart-list>
+    {% if cart_items %}
+      {% for item in cart_items %}
+      <article class="cart-item" data-item-id="{{ item.id }}">
+        <div class="cart-item__header">
+          <div>
+            <h3>{{ item.dashboard.title }}</h3>
+            <p>{{ item.marketplaces|join:", " }} • {{ item.cabinets_count }} кабинет(а) • {{ item.months }} мес.</p>
+          </div>
+          <button class="button button--secondary" data-remove="{{ item.id }}">Удалить</button>
+        </div>
+        <div class="cart-item__controls">
+          <div class="form__field">
+            <span>Маркетплейсы</span>
+            <div class="option-group__controls">
+              {% for marketplace in item.marketplaces %}
+              <label class="option-chip option-chip--checked">
+                <input type="checkbox" name="marketplaces" value="{{ marketplace }}" data-field="markets" checked>
+                <img src="{% static 'assets/images/wb.webp' %}" alt="{{ marketplace }}" class="option-chip__image">
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="cart-item__controls-row">
+            <label class="form__field form__field--compact">
+              <span>Кабинеты</span>
+              <select data-field="cabinets">
+                {% for i in "12345678901234567890"|make_list %}
+                <option value="{{ forloop.counter }}" {% if forloop.counter == item.cabinets_count %}selected{% endif %}>{{ forloop.counter }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form__field form__field--compact">
+              <span>Месяцы</span>
+              <select data-field="months">
+                {% for i in "12345"|make_list %}
+                <option value="{{ forloop.counter }}" {% if forloop.counter == item.months %}selected{% endif %}>{{ forloop.counter }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+        </div>
+        <p class="cart-item__price">{{ item.get_total_price|floatformat:0 }} ₽</p>
+        {% if item.discount_percent > 0 %}
+        <p class="cart-item__discount">Скидка: {{ item.discount_percent|floatformat:2 }}%</p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    {% else %}
+    <p class="cart__empty">Корзина пуста. Вернитесь в конфигуратор и выберите дашборд.</p>
+    {% endif %}
+  </div>
+  <aside class="cart__summary">
+    <div class="summary-card">
+      <h2 class="summary-card__title">Итог по подписке</h2>
+      <div class="summary-card__line">
+        <span>Общая стоимость</span>
+        <strong data-cart-total>{{ cart_total|floatformat:0 }} ₽</strong>
+      </div>
+      <div class="summary-card__line">
+        <span>Выбранные дашборды</span>
+        <strong data-cart-count>{{ cart_count }}</strong>
+      </div>
+      <button class="button button--primary button--block" {% if not cart_items %}disabled{% endif %} data-cart-checkout>Оформить</button>
+      <p class="summary-card__info">После оформления вы перейдёте в личный кабинет, где получите доступы от выбранных инструментов.</p>
+    </div>
+  </aside>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.CART_API_URL = '{% url "cart:api_cart" %}';
+  window.CART_TOTAL_API_URL = '{% url "cart:api_cart_total" %}';
+</script>
+{% endblock %}
+

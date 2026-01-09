@@ -1,0 +1,98 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Управление подпиской — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <a href="{% url 'content:dashboard' %}" class="breadcrumbs">
+      <span>← Назад к подпискам</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <h1 class="page-hero__title" id="subscriptionTitle" style="margin: 0;">Продажи и финансы</h1>
+      <span id="subscriptionStatusBadge" class="subscription-status-badge" style="display: none;"></span>
+    </div>
+    <p class="page-hero__subtitle">Управление подпиской и история платежей</p>
+  </section>
+
+  <section class="section">
+    <div class="subscription-notice" id="subscriptionNotice" hidden>
+      <div class="subscription-notice__icon">ℹ️</div>
+      <div class="subscription-notice__content">
+        <strong>Изменения вступают в силу только по завершении текущего оплаченного периода подписки.</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="subscription-options">
+      <h2 class="section-heading__title">Активные опции</h2>
+      <p class="section-heading__description">Отключите ненужные опции для изменения стоимости подписки</p>
+      
+      <div class="subscription-options__form">
+        <div class="form__field">
+          <span class="form__field-label">Маркетплейсы</span>
+          <div class="checkbox-group">
+            <label class="checkbox">
+              <input type="checkbox" name="marketplaces" value="Wildberries" checked>
+              <span>Wildberries</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="marketplaces" value="OZON" checked>
+              <span>OZON</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="form__field">
+          <span class="form__field-label">Количество кабинетов</span>
+          <label class="form__field">
+            <select name="cabinets" class="form__field select">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form__field">
+          <span class="form__field-label">Количество месяцев</span>
+          <label class="form__field">
+            <select name="months" class="form__field select">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="12">12</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="subscription-options__summary">
+          <div class="subscription-options__price">
+            <span>Новая стоимость:</span>
+            <strong id="newPrice">36 000 ₽/мес</strong>
+          </div>
+          <div class="subscription-options__actions" id="subscriptionActions">
+            <button class="button button--primary" id="saveOptions">Сохранить изменения</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-heading__title">История платежей</h2>
+    <div class="payments-history" id="paymentsHistory">
+      <!-- История платежей будет добавлена через JavaScript -->
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/subscription.js' %}" defer></script>
+{% endblock %}

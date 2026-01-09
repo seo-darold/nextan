@@ -1,0 +1,52 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Платежи — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Платежи</p>
+    <h1 class="page-hero__title">История платежей</h1>
+    <p class="page-hero__subtitle">Все платежи по вашим подпискам</p>
+  </section>
+
+  <section class="section">
+    <div class="payments-controls">
+      <div class="payments-filter">
+        <label class="form__field">
+          <span>Период</span>
+          <select id="paymentsPeriodFilter" class="form__field select">
+            <option value="all">Весь период</option>
+            <option value="month">Этот месяц</option>
+            <option value="quarter">Этот квартал</option>
+            <option value="year">Этот год</option>
+          </select>
+        </label>
+        <div class="payments-filter__custom" id="customDateRange">
+          <label class="form__field">
+            <span>С</span>
+            <input type="date" id="dateFrom" class="form__field">
+          </label>
+          <label class="form__field">
+            <span>По</span>
+            <input type="date" id="dateTo" class="form__field">
+          </label>
+        </div>
+      </div>
+      <button class="button button--secondary" id="exportPayments" aria-label="Выгрузить в CSV/Excel">
+        <i class="fa-solid fa-download"></i>
+        <span>Выгрузить в CSV/Excel</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="payments-list" id="paymentsList">
+      <!-- Платежи будут добавлены через JavaScript -->
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/payments.js' %}" defer></script>
+{% endblock %}

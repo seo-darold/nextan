@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Блог — НекстАналитика{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section page-hero page-hero--extra-top">
+  <h1 class="page-hero__title">Экспертиза аналитики маркетплейсов</h1>
+  <p class="page-hero__subtitle">Обзоры кейсов, аналитика категорий, инструкции по Power BI и развёртыванию дашбордов.</p>
+</section>
+
+<section class="section blog-list" id="blog">
+  <div class="section-heading">
+    <h2 class="section-heading__title">Свежие статьи</h2>
+  </div>
+  <div class="blog-list__grid" data-blog-grid>
+    {% for post in posts %}
+    <article class="blog-card">
+      <a href="{% url 'blog:post_detail' post.slug %}" class="blog-card__link">
+        <div class="blog-card__header">
+          {% if post.category %}
+          <span class="blog-card__category">{{ post.category.name }}</span>
+          {% endif %}
+          <span class="blog-card__date">{{ post.published_at|date:"d.m.Y" }}</span>
+        </div>
+        <h3 class="blog-card__title">{{ post.title }}</h3>
+        <p class="blog-card__excerpt">{{ post.excerpt }}</p>
+        <div class="blog-card__footer">
+          <span class="blog-card__read-more">Читать статью</span>
+          <i class="fa-solid fa-arrow-right blog-card__arrow"></i>
+        </div>
+      </a>
+    </article>
+    {% empty %}
+    <p>Статьи пока не опубликованы.</p>
+    {% endfor %}
+  </div>
+  {% if is_paginated %}
+  <div class="blog-list__actions">
+    {% if page_obj.has_next %}
+    <button class="button button--secondary" data-blog-more>Показать ещё</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+

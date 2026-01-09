@@ -1,0 +1,332 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинеты — НекстАналитика</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="page">
+  <header class="header header--alt">
+    <div class="header__inner">
+      <a class="header__logo" href="index.html">
+        <img class="header__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+      </a>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="navList" aria-label="Открыть меню">
+          <span class="nav__toggle-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line class="nav__toggle-line nav__toggle-line--top" x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--middle" x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--bottom" x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <ul class="nav__list" id="navList">
+          <li class="nav__item"><a class="nav__link" href="index.html">Главная</a></li>
+          <li class="nav__item"><a class="nav__link" href="about.html">О нас</a></li>
+          <li class="nav__item"><a class="nav__link" href="blog.html">Блог</a></li>
+          <li class="nav__item"><a class="nav__link" href="contacts.html">Контакты</a></li>
+          <li class="nav__item nav__item--actions">
+            <div class="nav__actions">
+              <a class="nav__action nav__action--login" href="dashboard.html" aria-label="Личный кабинет">
+                <span class="nav__action-icon" aria-hidden="true">👤</span>
+                <span class="nav__action-text">Личный кабинет</span>
+              </a>
+              <a class="nav__action nav__action--cart" href="cart.html" aria-label="Корзина">
+                <span class="nav__action-icon" aria-hidden="true">🛒</span>
+                <span class="nav__action-text">Корзина</span>
+                <span class="nav__action-badge" data-cart-total="0">0 ₽</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <a class="header__user" href="dashboard.html" aria-label="Личный кабинет">
+          <span class="header__user-icon" aria-hidden="true">👤</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="dashboard-layout">
+      <aside class="dashboard-sidebar">
+        <nav class="dashboard-nav" aria-label="Навигация личного кабинета">
+          <ul class="dashboard-nav__list">
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="dashboard.html">
+                <span>Главная</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link dashboard-nav__link--active" href="cabinet.html">
+                <span>Кабинеты</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="payments.html">
+                <span>Платежи</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="account.html">
+                <span>Аккаунт</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="support.html">
+                <span>Поддержка</span>
+                <span class="dashboard-nav__badge" id="unreadSupportCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="powerbi-block">
+          <button class="powerbi-block__title" type="button" data-powerbi-accordion>
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Доступ к Power BI</span>
+            <i class="powerbi-block__toggle-icon fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="powerbi-block__content" aria-hidden="true">
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Ссылка</span>
+              <div class="powerbi-block__value">
+                <code>https://app.powerbi.com/view?r=...</code>
+                <button class="powerbi-block__copy" aria-label="Копировать ссылку">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Логин</span>
+              <div class="powerbi-block__value">
+                <code>user@company.ru</code>
+                <button class="powerbi-block__copy" aria-label="Копировать логин">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Пароль</span>
+              <div class="powerbi-block__value">
+                <code>••••••••</code>
+                <button class="powerbi-block__toggle" aria-label="Показать пароль">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="dashboard-content">
+        <section class="section page-hero">
+          <p class="page-hero__kicker">Кабинеты</p>
+          <h1 class="page-hero__title">Подключенные кабинеты</h1>
+          <p class="page-hero__subtitle">Управляйте подключенными кабинетами маркетплейсов</p>
+        </section>
+
+        <section class="section">
+          <div class="cabinet-actions">
+            <button class="button button--primary" data-modal-open="add-cabinet-modal">
+              <i class="fa-solid fa-plus"></i>
+              <span>Подключить новый кабинет</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="cabinet-grid" id="cabinetGrid">
+            <!-- Карточки кабинетов будут добавлены через JavaScript -->
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a class="footer__logo" href="index.html" aria-label="НекстАналитика">
+            <img class="footer__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+          </a>
+          <div class="footer__social-links footer__social-links--main">
+            <a href="#" class="footer__social-link footer__social-link--telegram" aria-label="Telegram" title="Telegram">
+              <i class="fa-brands fa-telegram"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--whatsapp" aria-label="WhatsApp" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--viber" aria-label="Viber" title="Viber">
+              <i class="fa-brands fa-viber"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--vk" aria-label="ВКонтакте" title="ВКонтакте">
+              <i class="fa-brands fa-vk"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--youtube" aria-label="YouTube" title="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Навигация</h3>
+          <ul class="footer__list">
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="about.html">О нас</a></li>
+            <li><a href="blog.html">Блог</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Документы</h3>
+          <ul class="footer__list">
+            <li><a href="#">Политика конфиденциальности</a></li>
+            <li><a href="#">Пользовательское соглашение</a></li>
+            <li><a href="#">Реквизиты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col footer__col--contacts">
+          <h3 class="footer__title">Контакты</h3>
+          <div class="footer__contacts">
+            <div class="footer__contact-item">
+              <a href="tel:+78001234567" class="footer__contact-link footer__contact-link--phone">
+                <i class="fa-solid fa-phone"></i>
+                <span>+7 800 123-45-67</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:sales@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>sales@pulsebi.ru</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:support@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>support@pulsebi.ru</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 НекстАналитика</p>
+    </div>
+  </footer>
+
+  <!-- Модальное окно для подключения нового кабинета -->
+  <div class="modal" id="add-cabinet-modal" role="dialog" aria-labelledby="add-cabinet-modal-title" aria-hidden="true" style="display: none;">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content modal__content--large">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="add-cabinet-modal-title">Подключить новый кабинет</h2>
+      
+      <form class="form form--stacked modal__form" id="addCabinetForm">
+        <label class="form__field">
+          <span>Название кабинета</span>
+          <input type="text" name="cabinetName" placeholder="Мой кабинет OZON" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Название магазина</span>
+          <input type="text" name="shopName" placeholder="Название магазина" required>
+        </label>
+        
+        <div class="form__field">
+          <span>Маркетплейс</span>
+          <div class="radio-group">
+            <label class="radio">
+              <input type="radio" name="marketplace" value="OZON" required>
+              <span>OZON</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="marketplace" value="WB" required>
+              <span>WB</span>
+            </label>
+          </div>
+        </div>
+        
+        <label class="form__field">
+          <span>API ключ</span>
+          <input type="text" name="apiKey" placeholder="Введите API ключ" required>
+        </label>
+        
+        <!-- Поля для OZON -->
+        <div id="ozonFields" style="display: none;">
+          <label class="form__field">
+            <span>Client ID (для Seller API OZON)</span>
+            <input type="text" name="ozonSellerClientId" placeholder="Введите Client ID">
+          </label>
+          
+          <label class="form__field">
+            <span>Client ID (для Performance API OZON)</span>
+            <input type="text" name="ozonPerformanceClientId" placeholder="Введите Client ID">
+          </label>
+          
+          <label class="form__field">
+            <span>Client secret (Performance API OZON)</span>
+            <input type="text" name="ozonPerformanceClientSecret" placeholder="Введите Client secret">
+          </label>
+        </div>
+        
+        <!-- Поля для WB -->
+        <div id="wbFields" style="display: none;">
+          <div class="form__field">
+            <span>Подключен ли Джем</span>
+            <div class="radio-group">
+              <label class="radio">
+                <input type="radio" name="gemConnected" value="yes">
+                <span>Да</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="gemConnected" value="no">
+                <span>Нет</span>
+              </label>
+            </div>
+          </div>
+          
+          <label class="form__field">
+            <span>Количество артикулов для одной рекламной кампании</span>
+            <input type="number" name="articlesPerCampaign" placeholder="Введите количество" min="1">
+          </label>
+        </div>
+        
+        <div class="modal__actions">
+          <button type="submit" class="button button--primary button--block">Подключить кабинет</button>
+          <button type="button" class="button button--secondary button--block" data-modal-close>Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно об успехе -->
+  <div class="modal" id="success-modal" role="dialog" aria-labelledby="success-modal-title" aria-hidden="true" style="display: none;">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <div class="success-modal__content">
+        <div class="success-modal__icon">✓</div>
+        <h2 class="modal__title" id="success-modal-title">Кабинет успешно подключен</h2>
+        <p class="success-modal__text">Ваш кабинет был успешно подключен и готов к использованию.</p>
+        <button class="button button--primary button--block" data-modal-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/cabinet.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</body>
+</html>
+

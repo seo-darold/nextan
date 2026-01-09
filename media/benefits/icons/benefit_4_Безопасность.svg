@@ -1,0 +1,15 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="32" fill="url(#gradient-benefit-4)" opacity="0.12"/>
+              <path d="M32 18L24 22V30C24 36.6274 29.3726 42 36 42C38.5773 42 40.9397 41.1605 42.8284 39.6569" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 18L40 22V30C40 36.6274 34.6274 42 28 42C25.4227 42 23.0603 41.1605 21.1716 39.6569" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 18V26" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M24 30L32 34L40 30" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="32" cy="32" r="8" fill="url(#gradient-benefit-4)" opacity="0.2"/>
+              <path d="M30 32L31.5 33.5L34 31" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="gradient-benefit-4" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>

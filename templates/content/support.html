@@ -1,0 +1,62 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Поддержка — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Поддержка</p>
+    <h1 class="page-hero__title">Тикеты поддержки</h1>
+    <p class="page-hero__subtitle">Все ваши обращения в службу поддержки</p>
+  </section>
+
+  <section class="section">
+    <div class="support-controls">
+      <div class="support-controls__left">
+        <div class="support-search">
+          <label class="form__field">
+            <span>Поиск по тикетам</span>
+            <input type="search" id="ticketsSearch" placeholder="Введите ключевые слова..." class="form__field">
+          </label>
+        </div>
+        <div class="support-filter">
+          <label class="form__field">
+            <span>Период</span>
+            <select id="ticketsPeriodFilter" class="form__field select">
+              <option value="all">Весь период</option>
+              <option value="week">Эта неделя</option>
+              <option value="month">Этот месяц</option>
+              <option value="custom">Произвольный диапазон</option>
+            </select>
+          </label>
+          <div class="support-filter__custom" id="customDateRange" hidden>
+            <label class="form__field">
+              <span>С</span>
+              <input type="date" id="dateFrom" class="form__field">
+            </label>
+            <label class="form__field">
+              <span>По</span>
+              <input type="date" id="dateTo" class="form__field">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="support-actions">
+        <button class="button button--primary" id="createTicketBtn">
+          <i class="fa-solid fa-plus"></i>
+          <span>Создать тикет</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="support-list" id="ticketsList">
+      <!-- Тикеты будут добавлены через JavaScript -->
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/support.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,38 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Кабинет — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section page-hero">
+    <a href="{% url 'content:cabinet' %}" class="breadcrumbs">
+      <span>← Назад к кабинетам</span>
+    </a>
+    <h1 class="page-hero__title" id="cabinetDetailTitle">Кабинет</h1>
+    <p class="page-hero__subtitle">Информация о кабинете и подключенных подписках</p>
+  </section>
+
+  <section class="section">
+    <h2 class="section-heading__title">Подключенные подписки</h2>
+    <p class="section-heading__description">Подписки, подключенные к этому кабинету</p>
+    <div class="subscriptions-grid" id="cabinetSubscriptionsGrid">
+      <!-- Карточки подписок будут добавлены через JavaScript -->
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="cabinet-personal-data">
+      <h2 class="section-heading__title">Личные данные</h2>
+      <p class="cabinet-personal-data__notice">
+        <strong>Примечание:</strong> Редактирование личных данных доступно только через обращение в поддержку.
+      </p>
+      <div class="cabinet-personal-data__content" id="cabinetPersonalData">
+        <!-- Данные будут добавлены через JavaScript -->
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/cabinet.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}О компании — НекстАналитика{% endblock %}
+{% block body_class %}page-about{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section page-hero page-hero--extra-top">
+  <h1 class="page-hero__title">НекстАналитика — команда аналитиков, разработчиков и консультантов</h1>
+  <p class="page-hero__subtitle">Помогаем продавцам Wildberries и OZON принимать решения на основе данных с 2018 года.</p>
+</section>
+
+{% if company_info %}
+<section class="section facts">
+  <div class="section-heading">
+    <h2 id="details" class="section-heading__title">Реквизиты компании</h2>
+  </div>
+  <div class="facts__grid">
+    <div>
+      <p><strong>{{ company_info.company_name }}</strong></p>
+      <p>ИНН {{ company_info.inn }}</p>
+      <p>КПП {{ company_info.kpp }}</p>
+    </div>
+    <div>
+      <p>БИК {{ company_info.bik }}</p>
+      <p>р/с {{ company_info.account_number }}</p>
+      <p>в {{ company_info.bank_name }}</p>
+    </div>
+    <div>
+      <p>Юр. адрес: {{ company_info.legal_address }}</p>
+      {% if company_info.office_address %}
+      <p>Офис для встреч: {{ company_info.office_address }}</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if company_info %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{{ company_info.company_name }}",
+  "legalName": "{{ company_info.company_name }}",
+  "taxID": "{{ company_info.inn }}",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "{{ company_info.legal_address }}",
+    "addressCountry": "RU"
+  }{% if company_info.office_address %},
+  "location": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "{{ company_info.office_address }}",
+      "addressCountry": "RU"
+    }
+  }{% endif %}{% if company_info.phone %},
+  "telephone": "{{ company_info.phone }}"{% endif %}{% if company_info.email_sales %},
+  "email": "{{ company_info.email_sales }}"{% endif %}{% if company_info.telegram_link or company_info.vk_link or company_info.youtube_link or company_info.whatsapp_link or company_info.viber_link %},
+  "sameAs": [
+    {% if company_info.telegram_link %}"{{ company_info.telegram_link }}"{% if company_info.vk_link or company_info.youtube_link or company_info.whatsapp_link or company_info.viber_link %},{% endif %}{% endif %}
+    {% if company_info.vk_link %}"{{ company_info.vk_link }}"{% if company_info.youtube_link or company_info.whatsapp_link or company_info.viber_link %},{% endif %}{% endif %}
+    {% if company_info.youtube_link %}"{{ company_info.youtube_link }}"{% if company_info.whatsapp_link or company_info.viber_link %},{% endif %}{% endif %}
+    {% if company_info.whatsapp_link %}"{{ company_info.whatsapp_link }}"{% if company_info.viber_link %},{% endif %}{% endif %}
+    {% if company_info.viber_link %}"{{ company_info.viber_link }}"{% endif %}
+  ]{% endif %}
+}
+</script>
+{% endif %}
+{% endblock %}
+

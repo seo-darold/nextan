@@ -1,0 +1,58 @@
+﻿{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Тикет #12345 — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <section class="section">
+    <div class="ticket-header">
+      <div class="ticket-header__info">
+        <h1 class="ticket-header__title" id="ticketTitle">Загрузка тикета...</h1>
+        <div class="ticket-header__meta">
+          <span id="ticketId">Тикет #—</span>
+          <span>•</span>
+          <span id="ticketDate">—</span>
+          <span>•</span>
+          <span id="ticketStatus">—</span>
+        </div>
+      </div>
+      <div class="ticket-header__actions">
+        <a href="{% url 'content:support' %}" class="button button--secondary">← Назад к списку</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="ticket-search">
+      <label class="form__field">
+        <span>Поиск в переписке</span>
+        <input type="search" id="messagesSearch" placeholder="Введите ключевые слова для поиска..." class="form__field">
+      </label>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="ticket-messages" id="ticketMessages">
+      <!-- Сообщения будут добавлены через JavaScript -->
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="ticket-reply">
+      <form class="ticket-reply__form" id="ticketReplyForm">
+        <label class="form__field">
+          <span>Ваш ответ</span>
+          <textarea id="replyText" class="form__field ticket-reply__textarea" placeholder="Введите ваше сообщение..." required></textarea>
+        </label>
+        <div class="ticket-reply__actions">
+          <p class="ticket-reply__hint">Поддержка ответит в течение 24 часов в рабочие дни</p>
+          <button type="submit" class="button button--primary">Отправить сообщение</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'assets/js/support-ticket.js' %}" defer></script>
+{% endblock %}

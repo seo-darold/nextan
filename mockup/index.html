@@ -1,0 +1,567 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>НекстАналитика — аналитика для продавцов маркетплейсов</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="page">
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <header class="header">
+    <div class="header__inner">
+      <a class="header__logo" href="index.html" aria-label="НекстАналитика">
+        <img class="header__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+      </a>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="navList" aria-label="Открыть меню">
+          <span class="nav__toggle-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line class="nav__toggle-line nav__toggle-line--top" x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--middle" x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--bottom" x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <ul class="nav__list" id="navList">
+          <li class="nav__item"><a class="nav__link" href="index.html">Главная</a></li>
+          <li class="nav__item"><a class="nav__link" href="about.html">О нас</a></li>
+          <li class="nav__item"><a class="nav__link" href="blog.html">Блог</a></li>
+          <li class="nav__item"><a class="nav__link" href="contacts.html">Контакты</a></li>
+          <li class="nav__item nav__item--actions">
+            <div class="nav__actions">
+              <button class="nav__action nav__action--login" aria-label="Личный кабинет" data-modal-open="login-modal">
+                <span class="nav__action-icon" aria-hidden="true">👤</span>
+                <span class="nav__action-text">Личный кабинет</span>
+              </button>
+              <a class="nav__action nav__action--cart" href="cart.html" aria-label="Корзина">
+                <span class="nav__action-icon" aria-hidden="true">🛒</span>
+                <span class="nav__action-text">Корзина</span>
+                <span class="nav__action-badge" data-cart-total="0">0 ₽</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <button class="header__login" aria-label="Войти в личный кабинет" data-modal-open="login-modal">
+          <span class="header__login-icon" aria-hidden="true">👤</span>
+        </button>
+        <a class="cart-indicator" href="cart.html" aria-label="Корзина">
+          <span class="cart-indicator__icon" aria-hidden="true">🛒</span>
+          <span class="cart-indicator__value" data-cart-total="0">0 ₽</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="main">
+    <div class="hero-wrapper">
+    <section class="section hero">
+      <div class="hero__content">
+        <h1 class="hero__title">Единая панель для контроля бизнеса на маркетплейсах</h1>
+        <p class="hero__subtitle">Понимайте спрос, маржинальность и риски в реальном времени. Получайте подсказки по ассортименту, рекламе и логистике в одном интерфейсе.</p>
+        <div class="hero__actions">
+          <button class="button button--primary" data-scroll-target="#configurator">Собрать решение</button>
+        </div>
+      </div>
+      <div class="hero__visual">
+        <img src="assets/images/hero_img.png" alt="НекстАналитика — аналитика для продавцов маркетплейсов" class="hero__image">
+      </div>
+    </section>
+    </div>
+
+    <section class="section configurator" id="configurator">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Соберите доступ к нужным дашбордам</h2>
+        <p class="section-heading__description">Выберите маркетплейсы, количество кабинетов и срок подписки — система автоматически рассчитает стоимость.</p>
+      </div>
+      <div class="configurator__grid">
+        <div class="configurator__list" id="dashboardList" aria-live="polite"></div>
+        <aside class="configurator__summary">
+          <div class="summary-card">
+            <h3 class="summary-card__title">Текущая конфигурация</h3>
+            <p class="summary-card__value" data-live-price>0 ₽</p>
+            <p class="summary-card__info">Стоимость появится после добавления дашбордов в корзину.</p>
+            <div class="summary-card__cart">
+              <h4>Корзина</h4>
+              <ul class="summary-card__list" data-mini-cart></ul>
+              <a class="button button--primary button--block" href="cart.html">Перейти в корзину</a>
+              <a class="summary-card__clear" href="#" data-clear-cart style="display: none;">Очистить</a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section personas">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Чем мы помогаем разным типам продавцов</h2>
+      </div>
+      <div class="personas__grid">
+        <article class="persona-card">
+          <div class="persona-card__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" fill="url(#gradient-novice)" opacity="0.15"/>
+              <path d="M24 14L24 34M14 24L34 24M20 20L28 28M28 20L20 28" stroke="url(#gradient-novice)" stroke-width="2.5" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="gradient-novice" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="persona-card__title">Новичок</h3>
+          <p class="persona-card__description">Понимание спроса, прогноз остатков, контроль дебюта бренда. Помогаем выбрать прибыльный ассортимент.</p>
+        </article>
+        <article class="persona-card">
+          <div class="persona-card__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" fill="url(#gradient-seller)" opacity="0.15"/>
+              <path d="M16 32L20 26L24 28L28 20L32 24" stroke="url(#gradient-seller)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle cx="20" cy="26" r="1.5" fill="url(#gradient-seller)"/>
+              <circle cx="24" cy="28" r="1.5" fill="url(#gradient-seller)"/>
+              <circle cx="28" cy="20" r="1.5" fill="url(#gradient-seller)"/>
+              <circle cx="32" cy="24" r="1.5" fill="url(#gradient-seller)"/>
+              <defs>
+                <linearGradient id="gradient-seller" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="persona-card__title">Действующий селлер</h3>
+          <p class="persona-card__description">Углубленная аналитика рекламных кампаний, автоматический контроль скидок и buy-box.</p>
+        </article>
+        <article class="persona-card">
+          <div class="persona-card__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" fill="url(#gradient-business)" opacity="0.15"/>
+              <path d="M18 18H30V30H18V18Z" stroke="url(#gradient-business)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 18L24 12L30 18" stroke="url(#gradient-business)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M24 12V18" stroke="url(#gradient-business)" stroke-width="2.5" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="gradient-business" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="persona-card__title">Крупный бизнес</h3>
+          <p class="persona-card__description">Консолидация многобрендовых аккаунтов, SLA на поддержку, white-label доступ к показателям.</p>
+        </article>
+        <article class="persona-card">
+          <div class="persona-card__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" fill="url(#gradient-agency)" opacity="0.15"/>
+              <circle cx="20" cy="20" r="3" stroke="url(#gradient-agency)" stroke-width="2.5" fill="none"/>
+              <circle cx="28" cy="20" r="3" stroke="url(#gradient-agency)" stroke-width="2.5" fill="none"/>
+              <circle cx="20" cy="28" r="3" stroke="url(#gradient-agency)" stroke-width="2.5" fill="none"/>
+              <circle cx="28" cy="28" r="3" stroke="url(#gradient-agency)" stroke-width="2.5" fill="none"/>
+              <path d="M20 20L28 20M20 20L20 28M28 20L28 28M20 28L28 28" stroke="url(#gradient-agency)" stroke-width="2.5" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="gradient-agency" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="persona-card__title">Агентство / интегратор</h3>
+          <p class="persona-card__description">Шаблоны отчётности для клиентов, управление доступами, API для встраивания в свои сервисы.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scheme">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Общая схема взаимодействия</h2>
+      </div>
+      <ol class="scheme-flow" role="list">
+        <li class="scheme-flow__item">
+          <span class="scheme-flow__marker" aria-hidden="true">1</span>
+          <div class="scheme-flow__body">
+            <span class="scheme-flow__tag">Подключение</span>
+            <p class="scheme-flow__title">API-подключение кабинетов Wildberries и OZON</p>
+            <p class="scheme-flow__text">Делаем безопасную связку, проверяем роли и тестируем доступы.</p>
+          </div>
+        </li>
+        <li class="scheme-flow__item">
+          <span class="scheme-flow__marker" aria-hidden="true">2</span>
+          <div class="scheme-flow__body">
+            <span class="scheme-flow__tag">ETL</span>
+            <p class="scheme-flow__title">ETL-процесс → хранилище → Power BI модели</p>
+            <p class="scheme-flow__text">Выстраиваем pipeline, ставим мониторинги и SLA на обновления.</p>
+          </div>
+        </li>
+        <li class="scheme-flow__item">
+          <span class="scheme-flow__marker" aria-hidden="true">3</span>
+          <div class="scheme-flow__body">
+            <span class="scheme-flow__tag">Права</span>
+            <p class="scheme-flow__title">Настройка прав и рабочих пространств</p>
+            <p class="scheme-flow__text">Создаём рабочие области, доступы по ролям и аудит действий.</p>
+          </div>
+        </li>
+        <li class="scheme-flow__item">
+          <span class="scheme-flow__marker" aria-hidden="true">4</span>
+          <div class="scheme-flow__body">
+            <span class="scheme-flow__tag">Обновление</span>
+            <p class="scheme-flow__title">Автообновление данных каждые 2 часа</p>
+            <p class="scheme-flow__text">Оптимизируем расписания, включаем алерты и контроль свежести.</p>
+          </div>
+        </li>
+        <li class="scheme-flow__item">
+          <span class="scheme-flow__marker" aria-hidden="true">5</span>
+          <div class="scheme-flow__body">
+            <span class="scheme-flow__tag">Доступ</span>
+            <p class="scheme-flow__title">Доступ из web + mobile Power BI</p>
+            <p class="scheme-flow__text">Готовим пресеты дашбордов, шэрим ссылки и обучаем команду.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section process">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Как начать работу</h2>
+      </div>
+      <p class="process__lead">Готовая дорожная карта с понятными шагами и ожиданиями по времени — без сюрпризов для вашей команды.</p>
+      <div class="process__grid">
+        <article class="process-card">
+          <div class="process-card__head">
+            <span class="process-card__step">Шаг 1</span>
+            <span class="process-card__tag">5 минут</span>
+          </div>
+          <h3 class="process-card__title">Собрать конфигурацию</h3>
+          <p class="process-card__text">Отметьте маркетплейсы, кабинеты и опции в конфигураторе — сразу увидите стоимость и наполнение.</p>
+          <ul class="process-card__list">
+            <li>WB, OZON и дополнительные площадки по запросу</li>
+            <li>Роли, права, период подписки и оплата в одном окне</li>
+          </ul>
+        </article>
+        <article class="process-card">
+          <div class="process-card__head">
+            <span class="process-card__step">Шаг 2</span>
+            <span class="process-card__tag">3 минуты</span>
+          </div>
+          <h3 class="process-card__title">Создать аккаунт</h3>
+          <p class="process-card__text">Регистрируем личный кабинет, добавляем команду и контактные данные для безопасного подключения.</p>
+          <ul class="process-card__list">
+            <li>Приглашения коллегам и разграничение доступов</li>
+            <li>Проверка ролей и соответствия требованиям безопасности</li>
+          </ul>
+        </article>
+        <article class="process-card">
+          <div class="process-card__head">
+            <span class="process-card__step">Шаг 3</span>
+            <span class="process-card__tag">до 1 часа</span>
+          </div>
+          <h3 class="process-card__title">Оплатить и подключить</h3>
+          <p class="process-card__text">Оплачиваем подписку, настраиваем токены и API, включаем мониторинг обновлений данных.</p>
+          <ul class="process-card__list">
+            <li>Единый счёт или онлайн-оплата на выбор</li>
+            <li>Настройка ETL, расписаний и контроль свежести данных</li>
+          </ul>
+        </article>
+        <article class="process-card">
+          <div class="process-card__head">
+            <span class="process-card__step">Шаг 4</span>
+            <span class="process-card__tag">в день запуска</span>
+          </div>
+          <h3 class="process-card__title">Начать пользоваться</h3>
+          <p class="process-card__text">Вы получаете доступ к дашбордам, готовые пресеты и инструкции — команда сразу видит ключевые метрики.</p>
+          <ul class="process-card__list">
+            <li>Онбординг-сессия и быстрые гайды для команды</li>
+            <li>Алерты, отчёты и аналитика в web + Power BI mobile</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section social-proof" aria-label="Ключевые показатели">
+      <div class="social-proof__metrics" role="list">
+        <div class="social-proof__metric" role="listitem">
+          <span class="social-proof__metric-label">Клиенты</span>
+          <span class="social-proof__metric-value">3000+</span>
+          <span class="social-proof__metric-desc">селлеров уже используют НекстАналитика</span>
+        </div>
+        <div class="social-proof__metric" role="listitem">
+          <span class="social-proof__metric-label">GMV под управлением</span>
+          <span class="social-proof__metric-value">12&nbsp;млрд ₽</span>
+          <span class="social-proof__metric-desc">в обороте клиентов на платформе</span>
+        </div>
+        <div class="social-proof__metric" role="listitem">
+          <span class="social-proof__metric-label">Скорость реакции</span>
+          <span class="social-proof__metric-value">2 часа</span>
+          <span class="social-proof__metric-desc">среднее время ответа службы поддержки</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section benefits">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Почему нас выбирают</h2>
+      </div>
+      <div class="benefits__grid">
+        <article class="benefit-card">
+          <div class="benefit-card__icon" aria-hidden="true">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="32" fill="url(#gradient-benefit-1)" opacity="0.12"/>
+              <rect x="14" y="18" width="20" height="14" rx="2" stroke="url(#gradient-benefit-1)" stroke-width="2.5"/>
+              <rect x="30" y="18" width="20" height="14" rx="2" stroke="url(#gradient-benefit-1)" stroke-width="2.5"/>
+              <rect x="14" y="34" width="20" height="14" rx="2" stroke="url(#gradient-benefit-1)" stroke-width="2.5"/>
+              <rect x="30" y="34" width="20" height="14" rx="2" stroke="url(#gradient-benefit-1)" stroke-width="2.5"/>
+              <line x1="24" y1="22" x2="24" y2="28" stroke="url(#gradient-benefit-1)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="40" y1="22" x2="40" y2="28" stroke="url(#gradient-benefit-1)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="24" y1="38" x2="24" y2="44" stroke="url(#gradient-benefit-1)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="40" y1="38" x2="40" y2="44" stroke="url(#gradient-benefit-1)" stroke-width="2" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="gradient-benefit-1" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="benefit-card__title">Единая точка входа</h3>
+          <p class="benefit-card__description">Все данные маркетплейсов и BI-инструментов в единой модели.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-card__icon" aria-hidden="true">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="32" fill="url(#gradient-benefit-2)" opacity="0.12"/>
+              <circle cx="32" cy="32" r="12" stroke="url(#gradient-benefit-2)" stroke-width="2.5"/>
+              <path d="M32 20L35 28L32 32L29 28L32 20Z" fill="url(#gradient-benefit-2)" opacity="0.4"/>
+              <path d="M44 32L36 29L32 32L36 35L44 32Z" fill="url(#gradient-benefit-2)" opacity="0.4"/>
+              <path d="M32 44L29 36L32 32L35 36L32 44Z" fill="url(#gradient-benefit-2)" opacity="0.4"/>
+              <path d="M20 32L28 35L32 32L28 29L20 32Z" fill="url(#gradient-benefit-2)" opacity="0.4"/>
+              <circle cx="32" cy="26" r="2" fill="url(#gradient-benefit-2)"/>
+              <circle cx="38" cy="32" r="2" fill="url(#gradient-benefit-2)"/>
+              <circle cx="32" cy="38" r="2" fill="url(#gradient-benefit-2)"/>
+              <circle cx="26" cy="32" r="2" fill="url(#gradient-benefit-2)"/>
+              <defs>
+                <linearGradient id="gradient-benefit-2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="benefit-card__title">Гибкая подписка</h3>
+          <p class="benefit-card__description">Оплачиваете только те инструменты, что нужны сейчас.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-card__icon" aria-hidden="true">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="32" fill="url(#gradient-benefit-3)" opacity="0.12"/>
+              <path d="M20 28C20 24.6863 22.6863 22 26 22H38C41.3137 22 44 24.6863 44 28V36C44 39.3137 41.3137 42 38 42H26C22.6863 42 20 39.3137 20 36V28Z" stroke="url(#gradient-benefit-3)" stroke-width="2.5"/>
+              <path d="M20 30L28 36L32 32L44 42" stroke="url(#gradient-benefit-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="28" cy="32" r="2" fill="url(#gradient-benefit-3)"/>
+              <circle cx="32" cy="32" r="2" fill="url(#gradient-benefit-3)"/>
+              <circle cx="36" cy="32" r="2" fill="url(#gradient-benefit-3)"/>
+              <defs>
+                <linearGradient id="gradient-benefit-3" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="benefit-card__title">B2B-поддержка</h3>
+          <p class="benefit-card__description">SLA, выделенный аккаунт и документация для команды.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-card__icon" aria-hidden="true">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="32" fill="url(#gradient-benefit-4)" opacity="0.12"/>
+              <path d="M32 18L24 22V30C24 36.6274 29.3726 42 36 42C38.5773 42 40.9397 41.1605 42.8284 39.6569" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 18L40 22V30C40 36.6274 34.6274 42 28 42C25.4227 42 23.0603 41.1605 21.1716 39.6569" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 18V26" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M24 30L32 34L40 30" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="32" cy="32" r="8" fill="url(#gradient-benefit-4)" opacity="0.2"/>
+              <path d="M30 32L31.5 33.5L34 31" stroke="url(#gradient-benefit-4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="gradient-benefit-4" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#6A5ACD"/>
+                  <stop offset="1" stop-color="#483D8B"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="benefit-card__title">Безопасность</h3>
+          <p class="benefit-card__description">Шифрование данных, аудит действий, контроль доступов.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section faq" id="faq">
+      <div class="section-heading">
+        <h2 class="section-heading__title">Частые вопросы</h2>
+      </div>
+      <div class="faq__container">
+        <div class="faq__list">
+          <details class="faq-item" open>
+            <summary class="faq-item__header">
+              <span class="faq-item__question">Как быстро подключаются данные?</span>
+              <span class="faq-item__toggle" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </summary>
+            <div class="faq-item__content">
+              <p>В среднем 3–5 рабочих дней. Первые отчёты доступны уже через 24 часа после подключения кабинетов.</p>
+            </div>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-item__header">
+              <span class="faq-item__question">Можно ли оплатить одним счётом сразу несколько дашбордов?</span>
+              <span class="faq-item__toggle" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </summary>
+            <div class="faq-item__content">
+              <p>Да, мы выставляем единый счёт с детальной расшифровкой по каждому инструменту и опциям.</p>
+            </div>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-item__header">
+              <span class="faq-item__question">Есть ли обучение?</span>
+              <span class="faq-item__toggle" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </summary>
+            <div class="faq-item__content">
+              <p>Проводим живые сессии и даём библиотеку self-paced материалов.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a class="footer__logo" href="index.html" aria-label="НекстАналитика">
+            <img class="footer__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+          </a>
+          <div class="footer__social-links footer__social-links--main">
+            <a href="#" class="footer__social-link footer__social-link--telegram" aria-label="Telegram" title="Telegram">
+              <i class="fa-brands fa-telegram"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--whatsapp" aria-label="WhatsApp" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--viber" aria-label="Viber" title="Viber">
+              <i class="fa-brands fa-viber"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--vk" aria-label="ВКонтакте" title="ВКонтакте">
+              <i class="fa-brands fa-vk"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--youtube" aria-label="YouTube" title="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Навигация</h3>
+          <ul class="footer__list">
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="about.html">О нас</a></li>
+            <li><a href="blog.html">Блог</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Документы</h3>
+          <ul class="footer__list">
+            <li><a href="#">Политика конфиденциальности</a></li>
+            <li><a href="#">Пользовательское соглашение</a></li>
+            <li><a href="#">Реквизиты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col footer__col--contacts">
+          <h3 class="footer__title">Контакты</h3>
+          <div class="footer__contacts">
+            <div class="footer__contact-item">
+              <a href="tel:+78001234567" class="footer__contact-link footer__contact-link--phone">
+                <i class="fa-solid fa-phone"></i>
+                <span>+7 800 123-45-67</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:sales@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>sales@pulsebi.ru</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:support@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>support@pulsebi.ru</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 НекстАналитика</p>
+    </div>
+  </footer>
+
+  <div class="modal" id="login-modal" role="dialog" aria-labelledby="login-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="login-modal-title">Вход в личный кабинет</h2>
+      
+      <form class="form form--stacked modal__form">
+        <label class="form__field">
+          <span>Email или логин</span>
+          <input type="text" placeholder="name@company.ru" required>
+        </label>
+        <label class="form__field">
+          <span>Пароль</span>
+          <input type="password" placeholder="••••••••" required>
+        </label>
+        <button type="submit" class="button button--primary button--block">Войти</button>
+      </form>
+
+      <div class="modal__divider">
+        <span>или</span>
+      </div>
+
+      <div class="modal__social">
+        <button class="button button--social button--social-vk">
+          <span>VK ID</span>
+        </button>
+        <button class="button button--social button--social-google">
+          <span>Google</span>
+        </button>
+        <button class="button button--social button--social-sber">
+          <span>Сбер ID</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js" defer></script>
+</body>
+</html>

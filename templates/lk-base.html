@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block header_class %}header--alt{% endblock %}
+
+{% block body_class %}page-dashboard{% endblock %}
+
+{% block header %}
+  {% url 'content:index' as index_url %}
+  {% url 'content:about' as about_url %}
+  {% url 'blog:list' as blog_url %}
+  {% url 'content:contacts' as contacts_url %}
+  {% url 'content:dashboard' as dashboard_url %}
+  {% url 'cart:cart' as cart_url %}
+  
+  <header class="header header--alt">
+    <div class="header__inner">
+      <a class="header__logo" href="{{ index_url }}" aria-label="НекстАналитика">
+        <img class="header__logo-img" src="{% static 'assets/images/logo.png' %}" alt="НекстАналитика">
+      </a>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="navList" aria-label="Открыть меню">
+          <span class="nav__toggle-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line class="nav__toggle-line nav__toggle-line--top" x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--middle" x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--bottom" x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <ul class="nav__list" id="navList">
+          <li class="nav__item"><a class="nav__link {% if request.resolver_match.url_name == 'index' %}active{% endif %}" href="{{ index_url }}" {% if request.path == index_url %}aria-current="page"{% endif %}>Главная</a></li>
+          <li class="nav__item"><a class="nav__link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{{ about_url }}" {% if request.path == about_url %}aria-current="page"{% endif %}>О нас</a></li>
+          <li class="nav__item"><a class="nav__link {% if 'blog' in request.resolver_match.app_name %}active{% endif %}" href="{{ blog_url }}" {% if 'blog' in request.resolver_match.app_name %}aria-current="page"{% endif %}>Блог</a></li>
+          <li class="nav__item"><a class="nav__link {% if request.resolver_match.url_name == 'contacts' %}active{% endif %}" href="{{ contacts_url }}" {% if request.path == contacts_url %}aria-current="page"{% endif %}>Контакты</a></li>
+          <li class="nav__item nav__item--actions">
+            <div class="nav__actions">
+              <a class="nav__action nav__action--login" href="{{ dashboard_url }}" aria-label="Личный кабинет">
+                <span class="nav__action-icon" aria-hidden="true">👤</span>
+                <span class="nav__action-text">Личный кабинет</span>
+              </a>
+              <a class="nav__action nav__action--cart" href="{{ cart_url }}" aria-label="Корзина">
+                <span class="nav__action-icon" aria-hidden="true">🛒</span>
+                <span class="nav__action-text">Корзина</span>
+                <span class="nav__action-badge" data-cart-total="0">0 ₽</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <a class="header__user" href="{{ dashboard_url }}" aria-label="Личный кабинет">
+          <span class="header__user-icon" aria-hidden="true">👤</span>
+        </a>
+      </div>
+    </div>
+  </header>
+{% endblock %}
+
+{% block content %}
+  <div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+      <nav class="dashboard-nav" aria-label="Навигация личного кабинета">
+        <ul class="dashboard-nav__list">
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'dashboard' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:dashboard' %}">
+              <span>Главная</span>
+            </a>
+          </li>
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'cabinet' or request.resolver_match.url_name == 'cabinet_detail' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:cabinet' %}">
+              <span>Кабинеты</span>
+            </a>
+          </li>
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'payments' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:payments' %}">
+              <span>Платежи</span>
+            </a>
+          </li>
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'account' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:account' %}">
+              <span>Аккаунт</span>
+            </a>
+          </li>
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'support' or request.resolver_match.url_name == 'support_ticket' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:support' %}">
+              <span>Поддержка</span>
+              <span class="dashboard-nav__badge" id="unreadSupportCount" style="display: none;">0</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="powerbi-block">
+        <button class="powerbi-block__title" type="button" data-powerbi-accordion>
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Доступ к Power BI</span>
+          <i class="powerbi-block__toggle-icon fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="powerbi-block__content" aria-hidden="true">
+          <div class="powerbi-block__field">
+            <span class="powerbi-block__label">Ссылка</span>
+            <div class="powerbi-block__value">
+              <code>https://app.powerbi.com/view?r=...</code>
+              <button class="powerbi-block__copy" aria-label="Копировать ссылку">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="powerbi-block__field">
+            <span class="powerbi-block__label">Логин</span>
+            <div class="powerbi-block__value">
+              <code>user@company.ru</code>
+              <button class="powerbi-block__copy" aria-label="Копировать логин">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="powerbi-block__field">
+            <span class="powerbi-block__label">Пароль</span>
+            <div class="powerbi-block__value">
+              <code>••••••••</code>
+              <button class="powerbi-block__toggle" aria-label="Показать пароль">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="dashboard-content">
+      {% block dashboard_content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block modals %}{% endblock %}

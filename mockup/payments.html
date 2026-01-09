@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Платежи — НекстАналитика</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="page">
+  <header class="header header--alt">
+    <div class="header__inner">
+      <a class="header__logo" href="index.html">
+        <img class="header__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+      </a>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="navList" aria-label="Открыть меню">
+          <span class="nav__toggle-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line class="nav__toggle-line nav__toggle-line--top" x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--middle" x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line class="nav__toggle-line nav__toggle-line--bottom" x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <ul class="nav__list" id="navList">
+          <li class="nav__item"><a class="nav__link" href="index.html">Главная</a></li>
+          <li class="nav__item"><a class="nav__link" href="about.html">О нас</a></li>
+          <li class="nav__item"><a class="nav__link" href="blog.html">Блог</a></li>
+          <li class="nav__item"><a class="nav__link" href="contacts.html">Контакты</a></li>
+          <li class="nav__item nav__item--actions">
+            <div class="nav__actions">
+              <a class="nav__action nav__action--login" href="dashboard.html" aria-label="Личный кабинет">
+                <span class="nav__action-icon" aria-hidden="true">👤</span>
+                <span class="nav__action-text">Личный кабинет</span>
+              </a>
+              <a class="nav__action nav__action--cart" href="cart.html" aria-label="Корзина">
+                <span class="nav__action-icon" aria-hidden="true">🛒</span>
+                <span class="nav__action-text">Корзина</span>
+                <span class="nav__action-badge" data-cart-total="0">0 ₽</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <a class="header__user" href="dashboard.html" aria-label="Личный кабинет">
+          <span class="header__user-icon" aria-hidden="true">👤</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="dashboard-layout">
+      <aside class="dashboard-sidebar">
+        <nav class="dashboard-nav" aria-label="Навигация личного кабинета">
+          <ul class="dashboard-nav__list">
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="dashboard.html">
+                <span>Главная</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="cabinet.html">
+                <span>Кабинеты</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link dashboard-nav__link--active" href="payments.html">
+                <span>Платежи</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="account.html">
+                <span>Аккаунт</span>
+              </a>
+            </li>
+            <li class="dashboard-nav__item">
+              <a class="dashboard-nav__link" href="support.html">
+                <span>Поддержка</span>
+                <span class="dashboard-nav__badge" id="unreadSupportCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="powerbi-block">
+          <button class="powerbi-block__title" type="button" data-powerbi-accordion>
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Доступ к Power BI</span>
+            <i class="powerbi-block__toggle-icon fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="powerbi-block__content" aria-hidden="true">
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Ссылка</span>
+              <div class="powerbi-block__value">
+                <code>https://app.powerbi.com/view?r=...</code>
+                <button class="powerbi-block__copy" aria-label="Копировать ссылку">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Логин</span>
+              <div class="powerbi-block__value">
+                <code>user@company.ru</code>
+                <button class="powerbi-block__copy" aria-label="Копировать логин">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Пароль</span>
+              <div class="powerbi-block__value">
+                <code>••••••••</code>
+                <button class="powerbi-block__toggle" aria-label="Показать пароль">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="dashboard-content">
+        <section class="section page-hero">
+          <p class="page-hero__kicker">Платежи</p>
+          <h1 class="page-hero__title">История платежей</h1>
+          <p class="page-hero__subtitle">Все платежи по вашим подпискам</p>
+        </section>
+
+        <section class="section">
+          <div class="payments-controls">
+            <div class="payments-filter">
+              <label class="form__field">
+                <span>Период</span>
+                <select id="paymentsPeriodFilter" class="form__field select">
+                  <option value="all">Весь период</option>
+                  <option value="month">Этот месяц</option>
+                  <option value="quarter">Этот квартал</option>
+                  <option value="year">Этот год</option>
+                </select>
+              </label>
+              <div class="payments-filter__custom" id="customDateRange">
+                <label class="form__field">
+                  <span>С</span>
+                  <input type="date" id="dateFrom" class="form__field">
+                </label>
+                <label class="form__field">
+                  <span>По</span>
+                  <input type="date" id="dateTo" class="form__field">
+                </label>
+              </div>
+            </div>
+            <button class="button button--secondary" id="exportPayments" aria-label="Выгрузить в CSV/Excel">
+              <i class="fa-solid fa-download"></i>
+              <span>Выгрузить в CSV/Excel</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="payments-list" id="paymentsList">
+            <!-- Платежи будут добавлены через JavaScript -->
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a class="footer__logo" href="index.html" aria-label="НекстАналитика">
+            <img class="footer__logo-img" src="assets/images/logo.png" alt="НекстАналитика">
+          </a>
+          <div class="footer__social-links footer__social-links--main">
+            <a href="#" class="footer__social-link footer__social-link--telegram" aria-label="Telegram" title="Telegram">
+              <i class="fa-brands fa-telegram"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--whatsapp" aria-label="WhatsApp" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--viber" aria-label="Viber" title="Viber">
+              <i class="fa-brands fa-viber"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--vk" aria-label="ВКонтакте" title="ВКонтакте">
+              <i class="fa-brands fa-vk"></i>
+            </a>
+            <a href="#" class="footer__social-link footer__social-link--youtube" aria-label="YouTube" title="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Навигация</h3>
+          <ul class="footer__list">
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="about.html">О нас</a></li>
+            <li><a href="blog.html">Блог</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__title">Документы</h3>
+          <ul class="footer__list">
+            <li><a href="#">Политика конфиденциальности</a></li>
+            <li><a href="#">Пользовательское соглашение</a></li>
+            <li><a href="#">Реквизиты</a></li>
+          </ul>
+        </div>
+        <div class="footer__col footer__col--contacts">
+          <h3 class="footer__title">Контакты</h3>
+          <div class="footer__contacts">
+            <div class="footer__contact-item">
+              <a href="tel:+78001234567" class="footer__contact-link footer__contact-link--phone">
+                <i class="fa-solid fa-phone"></i>
+                <span>+7 800 123-45-67</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:sales@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>sales@pulsebi.ru</span>
+              </a>
+            </div>
+            
+            <div class="footer__contact-item">
+              <a href="mailto:support@pulsebi.ru" class="footer__contact-link footer__contact-link--email">
+                <i class="fa-solid fa-envelope"></i>
+                <span>support@pulsebi.ru</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 НекстАналитика</p>
+    </div>
+  </footer>
+
+  <script src="assets/js/payments.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</body>
+</html>
+

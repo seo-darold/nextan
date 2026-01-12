@@ -1,76 +1,56 @@
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
+    }
+  }
+  return '';
+}
+
 // Получение ID тикета из URL
 function getTicketIdFromURL() {
   const params = new URLSearchParams(window.location.search);
   return params.get('id') || null;
 }
 
-// Генерация моковых данных сообщений для тикета
-function generateTicketMessages(ticketId) {
-  const messages = [];
-  
-  // Получаем информацию о тикете из данных поддержки (если доступна)
-  const ticketData = getTicketById(ticketId);
-  
-  if (!ticketData) {
-    // Если тикет не найден, создаём дефолтные данные
-    return generateDefaultTicketMessages();
-  }
+// Загрузка тикета с API
+async function loadTicket(ticketId) {
+  try {
+    const response = await fetch(`/api/tickets/${ticketId}/`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
 
-  // Первое сообщение от пользователя
-  messages.push({
-    id: 'msg-1',
-    author: 'Иван Петров',
-    authorType: 'user',
-    date: new Date(ticketData.date),
-    text: ticketData.preview || 'Здравствуйте! У меня возник вопрос...',
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Ошибка загрузки тикета');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка загрузки тикета:', error);
+    return null;
+  }
+}
+
+// Преобразование сообщений из API в формат для отображения
+function formatMessages(apiMessages) {
+  return apiMessages.map(msg => ({
+    id: msg.id,
+    author: msg.author,
+    authorType: msg.is_admin ? 'support' : 'user',
+    date: new Date(msg.created_at),
+    text: msg.message,
     attachments: []
-  });
-
-  // Ответ от поддержки (если тикет не новый)
-  if (ticketData.status !== 'open' || ticketData.lastMessageDate.getTime() > ticketData.date.getTime() + 60 * 60 * 1000) {
-    const supportResponseDate = new Date(ticketData.date.getTime() + 2 * 60 * 60 * 1000);
-    messages.push({
-      id: 'msg-2',
-      author: 'Анна Смирнова',
-      authorType: 'support',
-      date: supportResponseDate,
-      text: 'Здравствуйте, Иван! Спасибо за обращение. Изучаю ваш вопрос и в ближайшее время подготовлю детальный ответ.',
-      attachments: []
-    });
-  }
-
-  // Дополнительные сообщения в зависимости от статуса
-  if (ticketData.status === 'closed') {
-    const closingDate = new Date(ticketData.lastMessageDate);
-    messages.push({
-      id: 'msg-3',
-      author: 'Иван Петров',
-      authorType: 'user',
-      date: new Date(closingDate.getTime() - 4 * 60 * 60 * 1000),
-      text: 'Спасибо за помощь! Вопрос решён.',
-      attachments: []
-    });
-    messages.push({
-      id: 'msg-4',
-      author: 'Анна Смирнова',
-      authorType: 'support',
-      date: closingDate,
-      text: 'Отлично! Рады были помочь. Если возникнут ещё вопросы, обращайтесь!',
-      attachments: []
-    });
-  } else if (ticketData.status === 'pending') {
-    const pendingDate = new Date(ticketData.lastMessageDate);
-    messages.push({
-      id: 'msg-3',
-      author: 'Анна Смирнова',
-      authorType: 'support',
-      date: pendingDate,
-      text: 'Для решения вопроса нам нужна дополнительная информация. Проверяю данные на нашей стороне и свяжусь с вами.',
-      attachments: []
-    });
-  }
-
-  return messages.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }));
 }
 
 function generateDefaultTicketMessages() {
@@ -274,25 +254,19 @@ function filterMessages(messages, searchTerm) {
   });
 }
 
-function setupTicketInfo(ticketId) {
+async function setupTicketInfo(ticketId) {
   const ticketTitle = document.getElementById('ticketTitle');
   const ticketIdSpan = document.getElementById('ticketId');
   const ticketDate = document.getElementById('ticketDate');
   const ticketStatus = document.getElementById('ticketStatus');
 
-  // Получаем данные тикета
-  let ticket = getTicketById(ticketId);
+  // Загружаем данные тикета с API
+  const ticket = await loadTicket(ticketId);
   
-  // Если тикет не найден, используем дефолтные данные
   if (!ticket) {
-    ticket = {
-      id: ticketId || 'TKT-12345',
-      subject: 'Не работает дашборд продаж',
-      date: new Date(),
-      status: 'open',
-      statusLabel: 'Открыт',
-      preview: 'Здравствуйте! После обновления не отображаются данные за последние несколько дней...'
-    };
+    alert('Тикет не найден. Перенаправление на список тикетов...');
+    window.location.href = '/support/';
+    return null;
   }
 
   if (ticketTitle) {
@@ -304,12 +278,15 @@ function setupTicketInfo(ticketId) {
   }
   
   if (ticketDate) {
-    ticketDate.textContent = ticket.date ? formatDateShort(ticket.date) : '—';
+    const createdDate = new Date(ticket.created_at);
+    ticketDate.textContent = formatDateShort(createdDate);
   }
   
   if (ticketStatus) {
-    ticketStatus.textContent = ticket.statusLabel || ticket.status || '—';
+    ticketStatus.textContent = ticket.status_display || ticket.status || '—';
   }
+  
+  return ticket;
 }
 
 function setupSearch() {
@@ -341,7 +318,7 @@ function setupReplyForm(ticketId) {
   const textarea = document.getElementById('replyText');
   if (!form || !textarea) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const text = textarea.value.trim();
@@ -350,14 +327,42 @@ function setupReplyForm(ticketId) {
       return;
     }
 
-    // В прототипе показываем сообщение
-    alert('Сообщение отправлено! В реальном приложении оно будет добавлено в переписку.');
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          message: text
+        }),
+      });
 
-    // Очищаем форму
-    textarea.value = '';
-
-    // В реальном приложении здесь был бы запрос к API для отправки сообщения
-    // После успешной отправки обновляли бы список сообщений
+      const data = await response.json();
+      
+      if (data.success) {
+        // Очищаем форму
+        textarea.value = '';
+        
+        // Перезагружаем тикет для получения новых сообщений
+        const ticket = await loadTicket(ticketId);
+        if (ticket && ticket.messages) {
+          const messages = formatMessages(ticket.messages);
+          if (window.updateTicketMessages) {
+            window.updateTicketMessages(messages);
+          } else {
+            renderMessages(messages);
+          }
+        }
+      } else {
+        alert('Ошибка при отправке сообщения: ' + (data.error || 'Неизвестная ошибка'));
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert('Ошибка при отправке сообщения: ' + error.message);
+    }
   });
 }
 
@@ -410,27 +415,29 @@ function updateUnreadCount() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const ticketId = getTicketIdFromURL();
   
   if (!ticketId) {
     alert('Тикет не найден. Перенаправление на список тикетов...');
-    window.location.href = 'support.html';
+    window.location.href = '/support/';
     return;
   }
 
-  setupTicketInfo(ticketId);
   setupSearch();
   setupReplyForm(ticketId);
   setupPowerBI();
   updateUnreadCount();
 
-  // Загружаем сообщения
-  const messages = generateTicketMessages(ticketId);
-  if (window.updateTicketMessages) {
-    window.updateTicketMessages(messages);
-  } else {
-    renderMessages(messages);
+  // Загружаем тикет и его сообщения
+  const ticket = await setupTicketInfo(ticketId);
+  if (ticket && ticket.messages) {
+    const messages = formatMessages(ticket.messages);
+    if (window.updateTicketMessages) {
+      window.updateTicketMessages(messages);
+    } else {
+      renderMessages(messages);
+    }
   }
 });
 

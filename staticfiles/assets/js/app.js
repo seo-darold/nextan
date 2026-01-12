@@ -654,18 +654,313 @@ function initModal() {
     }
   });
 
-  const loginForm = qs('.modal__form');
+  // Обработка формы входа
+  const loginForm = qs('#loginForm');
   if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
+    // Удаляем все предыдущие обработчики, если они есть
+    const newForm = loginForm.cloneNode(true);
+    loginForm.parentNode.replaceChild(newForm, loginForm);
+    
+    newForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      alert('Функция входа будет доступна после настройки авторизации');
+      e.stopPropagation();
+      
+      const emailInput = qs('#loginEmail', newForm);
+      const passwordInput = qs('#loginPassword', newForm);
+      const errorDiv = qs('#loginError', newForm);
+      
+      const email = emailInput?.value?.trim();
+      const password = passwordInput?.value;
+      
+      // Скрываем предыдущие ошибки
+      if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+      }
+      
+      if (!email || !password) {
+        if (errorDiv) {
+          errorDiv.textContent = 'Заполните все поля';
+          errorDiv.style.display = 'block';
+        }
+        return;
+      }
+      
+      try {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        
+        // Получаем CSRF токен из формы
+        const csrfToken = qs('[name=csrfmiddlewaretoken]', newForm)?.value || getCsrfToken();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        const response = await fetch('/login/', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          },
+          credentials: 'same-origin',
+          body: formData,
+        });
+        
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          // Если ответ не JSON, возможно это редирект
+          if (response.ok || response.status === 302) {
+            window.location.href = '/dashboard/';
+            return;
+          }
+          throw new Error('Ошибка сервера');
+        }
+        
+        if (data.success) {
+          // Закрываем модальное окно
+          const modal = newForm.closest('.modal');
+          if (modal) {
+            modal.setAttribute('aria-hidden', 'true');
+          }
+          
+          // Перенаправляем на dashboard
+          window.location.href = data.redirect_url || '/dashboard/';
+        } else {
+          // Показываем ошибку
+          if (errorDiv) {
+            let errorMessage = 'Неверный email или пароль';
+            if (data.errors) {
+              if (typeof data.errors === 'object') {
+                const errorValues = Object.values(data.errors).flat();
+                errorMessage = errorValues.length > 0 ? errorValues.join(', ') : errorMessage;
+              } else {
+                errorMessage = data.errors;
+              }
+            } else if (data.error) {
+              errorMessage = data.error;
+            }
+            errorDiv.textContent = errorMessage;
+            errorDiv.style.display = 'block';
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка входа:', error);
+        if (errorDiv) {
+          errorDiv.textContent = 'Ошибка соединения. Попробуйте позже.';
+          errorDiv.style.display = 'block';
+        }
+      }
     });
   }
+  
 
   qsa('.button--social').forEach((button) => {
     button.addEventListener('click', (e) => {
       e.preventDefault();
       alert('Функция социальной авторизации будет доступна после настройки');
+    });
+  });
+}
+
+// Функция для обновления счётчика непрочитанных сообщений поддержки
+// Используется на всех страницах личного кабинета для единообразия
+function updateUnreadSupportCount() {
+  // Если на странице есть локальная функция updateUnreadCount (например, в support.js),
+  // используем её для получения актуального значения
+  if (typeof updateUnreadCount === 'function') {
+    updateUnreadCount();
+    return;
+  }
+  
+  // Иначе обновляем все элементы счётчика на странице
+  // По умолчанию скрываем, если значение не задано
+  const badges = document.querySelectorAll('#unreadSupportCount');
+  badges.forEach(badge => {
+    const unreadCount = parseInt(badge.textContent) || 0;
+    badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+  });
+}
+
+// Инициализация плавной анимации для FAQ (по аналогии с accordion)
+function initFAQAnimation() {
+  const faqItems = qsa('.faq-item');
+  
+  faqItems.forEach((item) => {
+    const summary = item.querySelector('.faq-item__header');
+    const content = item.querySelector('.faq-item__content');
+    
+    if (!summary || !content) return;
+    
+    // Устанавливаем начальные стили
+    if (!item.hasAttribute('open')) {
+      content.style.maxHeight = '0';
+      content.style.opacity = '0';
+      content.style.padding = '0 28px';
+    }
+    
+    // Перехватываем клик
+    summary.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      const isOpen = item.hasAttribute('open');
+      
+      if (isOpen) {
+        // Закрываем с анимацией
+        closeFaqItem(item);
+      } else {
+        // Открываем с анимацией
+        openFaqItem(item);
+      }
+    });
+  });
+}
+
+function openFaqItem(item) {
+  const content = item.querySelector('.faq-item__content');
+  const toggle = item.querySelector('.faq-item__toggle');
+  
+  item.setAttribute('open', '');
+  
+  // Анимация открытия
+  requestAnimationFrame(() => {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    content.style.opacity = '1';
+    content.style.padding = '0 28px 28px';
+    
+    if (toggle) {
+      toggle.style.transform = 'rotate(180deg)';
+    }
+  });
+}
+
+function closeFaqItem(item) {
+  const content = item.querySelector('.faq-item__content');
+  const toggle = item.querySelector('.faq-item__toggle');
+  
+  content.style.maxHeight = content.scrollHeight + 'px';
+  
+  requestAnimationFrame(() => {
+    content.style.maxHeight = '0';
+    content.style.opacity = '0';
+    content.style.padding = '0 28px';
+    
+    if (toggle) {
+      toggle.style.transform = 'rotate(0deg)';
+    }
+    
+    // Удаляем атрибут open после завершения анимации
+    setTimeout(() => {
+      item.removeAttribute('open');
+    }, 400); // Должно совпадать с duration в CSS (0.4s)
+  });
+}
+
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    qsa('.faq-item[open]').forEach((item) => {
+      const content = item.querySelector('.faq-item__content');
+      if (content) {
+        content.style.maxHeight = content.scrollHeight + 'px';
+      }
+    });
+  }, 250);
+});
+
+// Инициализация аккордеона Power BI
+function setupPowerBIAccordion() {
+  qsa('[data-powerbi-accordion]').forEach((button) => {
+    const content = button.nextElementSibling;
+    if (!content) return;
+    
+    // Инициализация состояния при загрузке
+    const isMobile = window.matchMedia('(max-width: 960px)').matches;
+    if (!isMobile) {
+      // На десктопе всегда открыт
+      content.setAttribute('aria-hidden', 'false');
+      content.style.maxHeight = 'none';
+      content.style.opacity = '1';
+      content.style.paddingTop = '16px';
+    } else {
+      // На мобильной версии закрыт по умолчанию
+      content.setAttribute('aria-hidden', 'true');
+      content.style.maxHeight = '0';
+      content.style.opacity = '0';
+      content.style.paddingTop = '0';
+    }
+    
+    button.addEventListener('click', () => {
+      const isMobile = window.matchMedia('(max-width: 960px)').matches;
+      if (!isMobile) {
+        // На десктопе не обрабатываем клик
+        return;
+      }
+      
+      const isHidden = content.getAttribute('aria-hidden') === 'true';
+      
+      if (isHidden) {
+        // Открываем с плавной анимацией
+        content.setAttribute('aria-hidden', 'false');
+        // Сначала устанавливаем начальное состояние
+        content.style.maxHeight = '0';
+        content.style.opacity = '0';
+        content.style.paddingTop = '0';
+        
+        requestAnimationFrame(() => {
+          // Вычисляем высоту с учетом padding-top
+          const scrollHeight = content.scrollHeight;
+          content.style.maxHeight = scrollHeight + 16 + 'px'; // 16px - это padding-top
+          content.style.opacity = '1';
+          content.style.paddingTop = '16px';
+        });
+        
+        button.classList.add('powerbi-block__title--open');
+      } else {
+        // Закрываем с плавной анимацией
+        const currentHeight = content.scrollHeight;
+        content.style.maxHeight = currentHeight + 'px';
+        content.style.opacity = '1';
+        content.style.paddingTop = '16px';
+        
+        requestAnimationFrame(() => {
+          content.style.maxHeight = '0';
+          content.style.opacity = '0';
+          content.style.paddingTop = '0';
+          
+          setTimeout(() => {
+            content.setAttribute('aria-hidden', 'true');
+          }, 400); // Должно совпадать с duration в CSS (0.4s)
+        });
+        
+        button.classList.remove('powerbi-block__title--open');
+      }
+    });
+    
+    // Обработка изменения размера окна
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const isMobile = window.matchMedia('(max-width: 960px)').matches;
+        if (!isMobile) {
+          // На десктопе всегда открыт
+          content.setAttribute('aria-hidden', 'false');
+          content.style.maxHeight = 'none';
+          content.style.opacity = '1';
+          content.style.paddingTop = '16px';
+        } else {
+          // На мобильной версии сохраняем текущее состояние
+          const isHidden = content.getAttribute('aria-hidden') === 'true';
+          if (!isHidden) {
+            const scrollHeight = content.scrollHeight;
+            content.style.maxHeight = scrollHeight + 16 + 'px';
+            content.style.paddingTop = '16px';
+          }
+        }
+      }, 250);
     });
   });
 }
@@ -686,4 +981,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNavToggle();
   initScrollLinks();
   initModal();
+  initFAQAnimation();
+  setupPowerBIAccordion();
+  
+  // Обновляем счётчик непрочитанных сообщений поддержки
+  updateUnreadSupportCount();
 });

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Вход в личный кабинет — НекстАналитика{% endblock %}
+{% block body_class %}page-login{% endblock %}
+{% block header_class %}header--alt{% endblock %}
+
+{% block content %}
+<section class="section page-hero page-hero--extra-top">
+  <h1 class="page-hero__title">Вход в личный кабинет</h1>
+  <p class="page-hero__subtitle">Войдите в свой аккаунт для доступа к аналитике и дашбордам</p>
+</section>
+
+<section class="section login-section">
+  <div class="login-container">
+    <div class="login-card">
+      <form class="form form--stacked" method="post" action="{% url 'core:login' %}">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="form__error">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        <label class="form__field">
+          <span>{{ form.email.label }}</span>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <div class="form__field-error">
+              {% for error in form.email.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </label>
+        
+        <label class="form__field">
+          <span>{{ form.password.label }}</span>
+          {{ form.password }}
+          {% if form.password.errors %}
+            <div class="form__field-error">
+              {% for error in form.password.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </label>
+        
+        <button type="submit" class="button button--primary button--block">Войти</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

@@ -1,4 +1,28 @@
-// Моковые данные подписок (даты рассчитываются динамически)
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
+    }
+  }
+  return '';
+}
+
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
+// Моковые данные подписок (даты рассчитываются динамически) - только для админа
 function generateSubscriptionsData() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -107,7 +131,56 @@ function generateSubscriptionsData() {
   ];
 }
 
-const subscriptionsData = generateSubscriptionsData();
+// Загрузка подписок с API
+let subscriptionsData = [];
+
+async function loadSubscriptions() {
+  try {
+    const response = await fetch('/api/subscriptions/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки подписок');
+    }
+
+    const data = await response.json();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    subscriptionsData = data.map(sub => {
+      const endDate = new Date(sub.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      const isActive = sub.status === 'active' && endDate >= today;
+      const daysUntil = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+      
+      // Определяем маркетплейсы из кабинета
+      const markets = sub.cabinet_name ? [sub.cabinet_name.includes('WB') || sub.cabinet_name.includes('Wildberries') ? 'Wildberries' : 'OZON'] : [];
+      const options = markets.length > 0 ? [...markets, '1 кабинет'] : ['1 кабинет'];
+      
+      return {
+        id: String(sub.id),
+        title: sub.dashboard_title,
+        options: options,
+        markets: markets,
+        expiryDate: endDate,
+        amount: sub.price_per_month,
+        status: isActive ? (daysUntil <= 5 ? 'expiring-soon' : 'active') : 'inactive',
+        isActive: isActive
+      };
+    });
+    
+    return subscriptionsData;
+  } catch (error) {
+    console.error('Ошибка загрузки подписок:', error);
+    subscriptionsData = [];
+    return [];
+  }
+}
 
 function formatMoney(value) {
   return new Intl.NumberFormat('ru-RU').format(value);
@@ -193,7 +266,19 @@ function renderSubscriptions(subscriptions) {
   grid.innerHTML = '';
 
   if (subscriptions.length === 0) {
-    grid.innerHTML = '<p class="subscriptions-empty">Подписки не найдены</p>';
+    if (isAdminUser()) {
+      grid.innerHTML = '<p class="subscriptions-empty">Подписки не найдены</p>';
+    } else {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'subscriptions-empty';
+      emptyDiv.innerHTML = `
+        <p>У вас ещё нет подписок.</p>
+        <p>Вы можете оформить её прямо сейчас.</p>
+        <a href="/#configurator" class="button button--primary" style="margin-top: 16px; display: inline-block;">Добавить инструменты</a>
+      `;
+      grid.innerHTML = '';
+      grid.appendChild(emptyDiv);
+    }
     return;
   }
 
@@ -247,17 +332,21 @@ function renderAlert(subscriptions) {
   const alertList = document.querySelector('[data-alert-list]');
   if (!alert || !alertList) return;
 
-  // Показываем только активные подписки, которые истекают скоро
+  // Показываем только активные подписки, которые истекают скоро (в течение 5 дней)
   const expiringSoon = subscriptions.filter(sub => 
-    sub.isActive && isExpiringSoon(sub.expiryDate)
+    sub.isActive && isExpiringSoon(sub.expiryDate, 5)
   );
   
+  // Если нет подписок, истекающих в течение 5 дней, скрываем блок полностью
   if (expiringSoon.length === 0) {
     alert.hidden = true;
+    alert.style.display = 'none';
     return;
   }
 
+  // Если есть подписки, истекающие скоро, показываем блок
   alert.hidden = false;
+  alert.style.display = '';
   alertList.innerHTML = '';
 
   expiringSoon.forEach(sub => {
@@ -355,7 +444,15 @@ function setupPowerBI() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Если пользователь не админ, загружаем данные из API
+  if (!isAdminUser()) {
+    await loadSubscriptions();
+  } else {
+    // Для админа используем тестовые данные
+    subscriptionsData = generateSubscriptionsData();
+  }
+  
   setupFilter();
   setupExport();
   setupPowerBI();

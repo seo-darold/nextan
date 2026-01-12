@@ -1,4 +1,28 @@
-// Данные подписок для расчета цены
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
+    }
+  }
+  return '';
+}
+
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
+// Данные подписок для расчета цены (только для админа)
 const subscriptionDetails = {
   '1': {
     title: 'Продажи и финансы',
@@ -77,7 +101,102 @@ function calcPrice(basePrice, markets, cabinets) {
   return basePrice * markets.length * cabinets;
 }
 
-// Моковые данные для истории платежей по подписке
+// Загрузка данных подписки с API
+let currentSubscriptionData = null;
+
+async function loadSubscriptionData(subscriptionId) {
+  try {
+    // Загружаем список подписок и находим нужную
+    const response = await fetch('/api/subscriptions/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки подписки');
+    }
+
+    const data = await response.json();
+    const subscription = data.find(sub => String(sub.id) === String(subscriptionId));
+    
+    if (subscription) {
+      // Получаем информацию о дашборде для расчета базовой цены
+      const dashboardsResponse = await fetch('/api/dashboards/', {
+        method: 'GET',
+        headers: {
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'same-origin',
+      });
+      
+      let basePrice = subscription.price_per_month;
+      if (dashboardsResponse.ok) {
+        const dashboards = await dashboardsResponse.json();
+        const dashboard = dashboards.find(d => d.id === subscription.dashboard_id);
+        if (dashboard) {
+          basePrice = dashboard.base_price;
+        }
+      }
+      
+      // Определяем маркетплейсы из кабинета
+      const markets = subscription.cabinet_name ? 
+        (subscription.cabinet_name.includes('WB') || subscription.cabinet_name.includes('Wildberries') ? ['Wildberries'] : ['OZON']) : 
+        [];
+      
+      currentSubscriptionData = {
+        title: subscription.dashboard_title,
+        basePrice: basePrice,
+        currentMarkets: markets,
+        currentCabinets: 1, // Можно улучшить, если будет информация о количестве кабинетов
+        isActive: subscription.status === 'active'
+      };
+    }
+    
+    return currentSubscriptionData;
+  } catch (error) {
+    console.error('Ошибка загрузки подписки:', error);
+    return null;
+  }
+}
+
+// Загрузка платежей подписки с API
+async function loadSubscriptionPayments(subscriptionId) {
+  try {
+    const response = await fetch('/api/payments/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки платежей');
+    }
+
+    const data = await response.json();
+    // Фильтруем платежи по subscription_id
+    const subscriptionPayments = data
+      .filter(payment => payment.subscription_id && String(payment.subscription_id) === String(subscriptionId))
+      .map(payment => ({
+        date: new Date(payment.created_at),
+        amount: payment.amount,
+        period: '3 месяца', // Можно улучшить, если будет информация о периоде
+        status: payment.status === 'completed' ? 'paid' : 'pending'
+      }))
+      .sort((a, b) => b.date - a.date);
+    
+    return subscriptionPayments;
+  } catch (error) {
+    console.error('Ошибка загрузки платежей:', error);
+    return [];
+  }
+}
+
+// Моковые данные для истории платежей по подписке (только для админа)
 function generateSubscriptionPayments(subscriptionId) {
   const today = new Date();
   const payments = [];
@@ -103,11 +222,8 @@ function generateSubscriptionPayments(subscriptionId) {
   return payments.sort((a, b) => b.date - a.date);
 }
 
+// Тестовые данные платежей (только для админа)
 const subscriptionPaymentsData = {};
-// Генерируем платежи для всех подписок
-Object.keys(subscriptionDetails).forEach(id => {
-  subscriptionPaymentsData[id] = generateSubscriptionPayments(id);
-});
 
 function formatMoney(value) {
   return new Intl.NumberFormat('ru-RU').format(value);
@@ -121,22 +237,37 @@ function formatDate(date) {
   }).format(date);
 }
 
-function renderPaymentsHistory(subscriptionId) {
+async function renderPaymentsHistory(subscriptionId) {
   const container = document.getElementById('paymentsHistory');
   if (!container) {
     console.warn('Container paymentsHistory not found');
     return;
   }
 
-  // Убеждаемся, что данные сгенерированы
-  if (!subscriptionPaymentsData[subscriptionId]) {
-    subscriptionPaymentsData[subscriptionId] = generateSubscriptionPayments(subscriptionId);
+  let payments = [];
+  
+  if (isAdminUser()) {
+    // Для админа используем тестовые данные
+    // Инициализируем данные для всех подписок при первом использовании
+    if (Object.keys(subscriptionPaymentsData).length === 0) {
+      Object.keys(subscriptionDetails).forEach(id => {
+        subscriptionPaymentsData[id] = generateSubscriptionPayments(id);
+      });
+    }
+    if (!subscriptionPaymentsData[subscriptionId]) {
+      subscriptionPaymentsData[subscriptionId] = generateSubscriptionPayments(subscriptionId);
+    }
+    payments = subscriptionPaymentsData[subscriptionId] || [];
+  } else {
+    // Для обычных пользователей загружаем из API
+    payments = await loadSubscriptionPayments(subscriptionId);
   }
-
-  const payments = subscriptionPaymentsData[subscriptionId] || [];
   
   if (payments.length === 0) {
-    container.innerHTML = '<p class="payments-empty">История платежей пуста</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="payments-empty">История платежей пуста</p>'
+      : '<p class="payments-empty">У вас ещё нет платежей по этой подписке.</p>';
+    container.innerHTML = emptyMessage;
     return;
   }
 
@@ -161,9 +292,21 @@ function renderPaymentsHistory(subscriptionId) {
   });
 }
 
-function setupOptionsEditor(subscriptionId) {
-  const details = subscriptionDetails[subscriptionId];
-  if (!details) return;
+async function setupOptionsEditor(subscriptionId) {
+  let details;
+  
+  if (isAdminUser()) {
+    // Для админа используем тестовые данные
+    details = subscriptionDetails[subscriptionId];
+    if (!details) return;
+  } else {
+    // Для обычных пользователей загружаем из API
+    details = await loadSubscriptionData(subscriptionId);
+    if (!details) {
+      console.warn('Subscription details not found for id:', subscriptionId);
+      return;
+    }
+  }
 
   // Установка текущих значений
   const marketCheckboxes = document.querySelectorAll('input[name="marketplaces"]');
@@ -254,8 +397,15 @@ function setupSaveButton() {
   });
 }
 
-function setupPayButton(subscriptionId) {
-  const details = subscriptionDetails[subscriptionId];
+async function setupPayButton(subscriptionId) {
+  let details;
+  
+  if (isAdminUser()) {
+    details = subscriptionDetails[subscriptionId];
+  } else {
+    details = await loadSubscriptionData(subscriptionId);
+  }
+  
   if (!details) {
     console.warn('Subscription details not found for id:', subscriptionId);
     return;
@@ -345,14 +495,14 @@ function setupPowerBI() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const subscriptionId = urlParams.get('id') || '1';
   
-  setupOptionsEditor(subscriptionId);
-  renderPaymentsHistory(subscriptionId);
+  await setupOptionsEditor(subscriptionId);
+  await renderPaymentsHistory(subscriptionId);
   setupSaveButton();
-  setupPayButton(subscriptionId);
+  await setupPayButton(subscriptionId);
   setupPowerBI();
 });
 

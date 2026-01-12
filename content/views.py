@@ -96,33 +96,76 @@ class ContactFormView(FormView):
 
 # === Новые простые представления ===
 
-class AccountView(TemplateView):
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+
+class AccountView(LoginRequiredMixin, TemplateView):
     template_name = 'content/account.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class CabinetDetailView(TemplateView):
+class CabinetDetailView(LoginRequiredMixin, TemplateView):
     template_name = 'content/cabinet-detail.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class CabinetView(TemplateView):
+class CabinetView(LoginRequiredMixin, TemplateView):
     template_name = 'content/cabinet.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'content/dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class PaymentsView(TemplateView):
+class PaymentsView(LoginRequiredMixin, TemplateView):
     template_name = 'content/payments.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class SubscriptionView(TemplateView):
+class SubscriptionView(LoginRequiredMixin, TemplateView):
     template_name = 'content/subscription.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class SupportTicketView(TemplateView):
+class SupportTicketView(LoginRequiredMixin, TemplateView):
     template_name = 'content/support-ticket.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
 
 
-class SupportView(TemplateView):
+class SupportView(LoginRequiredMixin, TemplateView):
     template_name = 'content/support.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context

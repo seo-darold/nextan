@@ -1277,16 +1277,17 @@ a {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  padding: 0 28px;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0 28px; /* ← текущие отступы слева/справа */
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 .faq-item[open] .faq-item__content {
-  max-height: 500px;
+  max-height: 3000px;
   opacity: 1;
-  padding: 0 28px 28px;
+  padding: 16px 28px 24px;
 }
 
 @keyframes faqSlideDown {
@@ -1306,6 +1307,7 @@ a {
   color: rgba(44, 47, 77, 0.8);
   margin: 0;
   padding-top: 4px;
+  padding-bottom: 8px;
 }
 
 .faq-item__content p + p {
@@ -2395,6 +2397,17 @@ a {
 
 .contact-form .button--block {
   margin-top: 24px;
+}
+
+.contact-form .checkbox-group {
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 0;
+}
+
+.contact-form .checkbox {
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .contact-info {
@@ -3584,6 +3597,46 @@ a {
   margin: 0 auto;
 }
 
+/* Исправление ширины для страниц личного кабинета */
+.page-dashboard .main {
+  gap: 0;
+  padding-block: 0;
+}
+
+.page-dashboard .header__inner {
+  max-width: none;
+  width: 100%;
+  padding-inline: 32px;
+  margin: 0;
+}
+
+.page-dashboard .footer__grid {
+  max-width: none;
+  width: 100%;
+  padding-inline: 32px;
+  margin: 0;
+}
+
+.page-dashboard .dashboard-layout {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+}
+
+.page-dashboard .dashboard-content {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 48px 32px;
+}
+
+.page-dashboard .dashboard-content .section {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding-inline: 0;
+}
+
 /* Dashboard loose layout (desktop) */
 .dashboard-loose .header__inner,
 .dashboard-loose .footer__grid {
@@ -3776,15 +3829,16 @@ a {
   max-height: 0;
   overflow: hidden;
   gap: 14px;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              padding-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
 }
 
 .powerbi-block__content[aria-hidden='false'] {
-  max-height: 600px;
-  opacity: 1;
   padding-top: 16px;
 }
 
@@ -3815,8 +3869,19 @@ a {
 
 /* На мобильной версии аккордеон закрыт по умолчанию и работает как аккордеон */
 @media (max-width: 960px) {
+  .powerbi-block__title {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  
   .powerbi-block__toggle-icon {
     display: flex;
+  }
+  
+  .powerbi-block__content[aria-hidden='true'] {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    padding-top: 0 !important;
   }
 }
 
@@ -4260,7 +4325,7 @@ a {
 }
 
 .button--secondary {
-  display: inline-flex;
+  /* display: inline-flex; */
   align-items: center;
   gap: 8px;
 }
@@ -5549,3 +5614,104 @@ a {
   }
 }
 
+/* Оверлей загрузки для формы контактов */
+.contact-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-form-overlay.active {
+  display: flex;
+}
+
+/* Спиннер загрузки */
+.contact-form-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(106, 90, 205, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Модальное окно успешной отправки */
+#contact-success-modal {
+  z-index: 1001;
+}
+
+#contact-success-modal.active,
+#contact-success-modal[aria-hidden="false"] {
+  display: flex;
+}
+
+#contact-success-modal .modal__content {
+  text-align: center;
+}
+
+#contact-success-modal .modal__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  background: var(--color-success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+}
+
+#contact-success-modal .modal__message {
+  font-size: 1.125rem;
+  color: var(--color-text);
+  margin-bottom: 24px;
+}
+
+/* Анимации для модальных окон */
+.modal {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal__content {
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.1s;
+}
+
+.modal[aria-hidden="false"] .modal__content {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.modal__overlay {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal[aria-hidden="false"] .modal__overlay {
+  opacity: 1;
+}

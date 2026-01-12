@@ -1,47 +1,49 @@
-// Генерация моковых данных платежей (около 50 записей)
-function generatePaymentsData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const payments = [];
-  const tools = ['Продажи и финансы', 'Оптимизатор рекламы', 'Логистика и склады'];
-  const amounts = [36000, 15000, 24000, 18000, 30000, 12000];
-  
-  // Генерируем платежи за последние 10 месяцев
-  for (let monthOffset = 0; monthOffset < 10; monthOffset++) {
-    // По 5 платежей в месяц
-    for (let i = 0; i < 5; i++) {
-      const paymentDate = new Date(today);
-      paymentDate.setMonth(today.getMonth() - monthOffset);
-      
-      // Устанавливаем день (5, 10, 15, 20, 25)
-      const day = Math.min(5 + i * 5, 28); // Максимум 28, чтобы избежать проблем с разной длиной месяцев
-      paymentDate.setDate(day);
-      paymentDate.setHours(0, 0, 0, 0);
-      
-      // Проверяем, что дата не в будущем
-      if (paymentDate <= today) {
-        const tool = tools[i % tools.length];
-        const amount = amounts[i % amounts.length];
-        
-        payments.push({
-          date: new Date(paymentDate),
-          amount: amount,
-          tool: tool,
-          period: '3 месяца',
-          status: 'paid'
-        });
-      }
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
     }
   }
-  
-  // Сортируем по дате (новые сверху)
-  const sorted = payments.sort((a, b) => b.date.getTime() - a.date.getTime());
-  console.log(`Generated ${sorted.length} payments`);
-  return sorted;
+  return '';
 }
 
-// Генерируем данные при загрузке модуля
-let paymentsData = generatePaymentsData();
+// Загрузка платежей с API
+let paymentsData = [];
+
+async function loadPayments() {
+  try {
+    const response = await fetch('/api/payments/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки платежей');
+    }
+
+    const data = await response.json();
+    paymentsData = data.map(payment => ({
+      date: new Date(payment.created_at),
+      amount: payment.amount,
+      tool: payment.description || payment.payment_type_display,
+      period: payment.subscription_id ? 'Подписка' : 'Пополнение счёта',
+      status: payment.status === 'completed' ? 'paid' : payment.status,
+      payment_type: payment.payment_type,
+    }));
+    
+    return paymentsData;
+  } catch (error) {
+    console.error('Ошибка загрузки платежей:', error);
+    paymentsData = [];
+    return [];
+  }
+}
 
 function formatMoney(value) {
   return new Intl.NumberFormat('ru-RU').format(value);
@@ -293,8 +295,8 @@ function setupFilter() {
 
   // Инициализация - убеждаемся, что данные есть
   if (!paymentsData || paymentsData.length === 0) {
-    console.warn('Payments data is empty, regenerating...');
-    paymentsData = generatePaymentsData();
+    console.warn('Payments data is empty');
+    paymentsData = [];
   }
   
   console.log('Before filtering:', paymentsData.length, 'payments');
@@ -368,25 +370,14 @@ function setupPowerBI() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   try {
     console.log('DOMContentLoaded - payments page');
     
-    // Проверяем, что paymentsData доступна
-    if (typeof paymentsData === 'undefined') {
-      console.error('paymentsData is undefined!');
-      paymentsData = generatePaymentsData();
-    }
-    
-    // Убеждаемся, что данные сгенерированы
-    if (!paymentsData || paymentsData.length === 0) {
-      console.log('Regenerating payments data...');
-      paymentsData = generatePaymentsData();
-    }
+    // Загружаем данные с API
+    await loadPayments();
     
     console.log('Payments data ready:', paymentsData ? paymentsData.length : 0, 'items');
-    console.log('paymentsData type:', typeof paymentsData);
-    console.log('paymentsData is array:', Array.isArray(paymentsData));
     
     // Инициализируем фильтр (он вызовет renderPayments)
     console.log('Calling setupFilter...');

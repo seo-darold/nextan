@@ -1,48 +1,61 @@
-// Моковые данные кабинетов
-function generateCabinetsData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  return [
-    {
-      id: '1',
-      name: 'Мой кабинет OZON',
-      connectedDate: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 дней назад
-      subscriptionsCount: 3,
-      marketplace: 'OZON',
-      shopName: 'Магазин Озон',
-      apiKey: 'ozon_api_key_12345',
-      ozonSellerClientId: 'seller_client_123',
-      ozonPerformanceClientId: 'performance_client_456',
-      ozonPerformanceClientSecret: 'performance_secret_789'
-    },
-    {
-      id: '2',
-      name: 'Кабинет Wildberries',
-      connectedDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000), // 15 дней назад
-      subscriptionsCount: 2,
-      marketplace: 'WB',
-      shopName: 'Магазин WB',
-      apiKey: 'wb_api_key_67890',
-      gemConnected: 'yes',
-      articlesPerCampaign: 50
-    },
-    {
-      id: '3',
-      name: 'Второй кабинет OZON',
-      connectedDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 дней назад
-      subscriptionsCount: 1,
-      marketplace: 'OZON',
-      shopName: 'Магазин Озон 2',
-      apiKey: 'ozon_api_key_54321',
-      ozonSellerClientId: 'seller_client_789',
-      ozonPerformanceClientId: 'performance_client_012',
-      ozonPerformanceClientSecret: 'performance_secret_345'
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
     }
-  ];
+  }
+  return '';
 }
 
-const cabinetsData = generateCabinetsData();
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
+// Загрузка кабинетов с API
+let cabinetsData = [];
+
+async function loadCabinets() {
+  try {
+    const response = await fetch('/api/cabinets/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки кабинетов');
+    }
+
+    const data = await response.json();
+    cabinetsData = data.map(cabinet => ({
+      id: cabinet.id,
+      name: cabinet.name,
+      connectedDate: new Date(cabinet.created_at),
+      subscriptionsCount: cabinet.subscriptions_count || 0,
+      marketplace: cabinet.marketplace,
+      shopName: cabinet.shop_name || '',
+    }));
+    
+    return cabinetsData;
+  } catch (error) {
+    console.error('Ошибка загрузки кабинетов:', error);
+    cabinetsData = [];
+    return [];
+  }
+}
 
 function formatDate(date) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -53,14 +66,21 @@ function formatDate(date) {
 }
 
 // Рендеринг карточек кабинетов на главной странице
-function renderCabinets() {
+async function renderCabinets() {
   const grid = document.getElementById('cabinetGrid');
   if (!grid) return;
+
+  grid.innerHTML = '<p class="cabinet-empty">Загрузка кабинетов...</p>';
+
+  await loadCabinets();
 
   grid.innerHTML = '';
 
   if (cabinetsData.length === 0) {
-    grid.innerHTML = '<p class="cabinet-empty">Кабинеты не найдены. Подключите первый кабинет.</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="cabinet-empty">Кабинеты не найдены. Подключите первый кабинет.</p>'
+      : '<p class="cabinet-empty">У вас ещё нет подключенных кабинетов.</p><p>Вы можете подключить кабинет, нажав кнопку "Подключить новый кабинет" выше.</p>';
+    grid.innerHTML = emptyMessage;
     return;
   }
 
@@ -95,33 +115,49 @@ function renderCabinets() {
 }
 
 // Рендеринг страницы детального просмотра кабинета
-function renderCabinetDetail() {
+async function renderCabinetDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const cabinetId = urlParams.get('id');
   
   if (!cabinetId) {
-    window.location.href = 'cabinet.html';
+    window.location.href = '/cabinet/';
     return;
   }
   
-  const cabinet = cabinetsData.find(c => c.id === cabinetId);
-  
-  if (!cabinet) {
-    window.location.href = 'cabinet.html';
-    return;
+  try {
+    const response = await fetch(`/api/cabinets/${cabinetId}/`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        window.location.href = '/cabinet/';
+        return;
+      }
+      throw new Error('Ошибка загрузки кабинета');
+    }
+
+    const cabinet = await response.json();
+    
+    // Устанавливаем заголовок
+    const titleElement = document.getElementById('cabinetDetailTitle');
+    if (titleElement) {
+      titleElement.textContent = cabinet.name;
+    }
+    
+    // Рендерим подписки
+    renderCabinetSubscriptions(cabinet);
+    
+    // Рендерим личные данные
+    renderPersonalData(cabinet);
+  } catch (error) {
+    console.error('Ошибка загрузки кабинета:', error);
+    window.location.href = '/cabinet/';
   }
-  
-  // Устанавливаем заголовок
-  const titleElement = document.getElementById('cabinetDetailTitle');
-  if (titleElement) {
-    titleElement.textContent = cabinet.name;
-  }
-  
-  // Рендерим подписки (используем данные из dashboard.js)
-  renderCabinetSubscriptions(cabinet);
-  
-  // Рендерим личные данные
-  renderPersonalData(cabinet);
 }
 
 // Рендеринг подписок кабинета
@@ -129,34 +165,15 @@ function renderCabinetSubscriptions(cabinet) {
   const grid = document.getElementById('cabinetSubscriptionsGrid');
   if (!grid) return;
   
-  // Получаем данные подписок из dashboard.js (если доступны) или используем моковые данные
-  const subscriptions = [
-    {
-      id: '1',
-      title: 'Продажи и финансы',
-      options: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries', '1 кабинет'],
-      markets: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'],
-      expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-      amount: 18000,
-      status: 'active',
-      isActive: true
-    },
-    {
-      id: '2',
-      title: 'Оптимизатор рекламы',
-      options: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries', '1 кабинет'],
-      markets: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'],
-      expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-      amount: 15000,
-      status: 'active',
-      isActive: true
-    }
-  ];
+  const subscriptions = cabinet.subscriptions || [];
   
   grid.innerHTML = '';
   
   if (subscriptions.length === 0) {
-    grid.innerHTML = '<p class="subscriptions-empty">К этому кабинету не подключено подписок</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="subscriptions-empty">К этому кабинету не подключено подписок</p>'
+      : '<p class="subscriptions-empty">К этому кабинету не подключено подписок.</p><p>Вы можете оформить подписку, перейдя на <a href="/dashboard/">страницу подписок</a>.</p>';
+    grid.innerHTML = emptyMessage;
     return;
   }
   
@@ -164,27 +181,27 @@ function renderCabinetSubscriptions(cabinet) {
     const card = document.createElement('article');
     card.className = 'subscription-card';
     
-    const daysUntil = Math.ceil((sub.expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+    const expiryDate = new Date(sub.end_date);
+    const daysUntil = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
     
     card.innerHTML = `
       <div class="subscription-card__header">
-        <h3 class="subscription-card__title">${sub.title}</h3>
-      </div>
-      <div class="subscription-card__options">
-        <span class="subscription-card__label">Подключенные опции:</span>
-        <div class="subscription-card__chips">
-          ${sub.options.map(opt => `<span class="chip">${opt}</span>`).join('')}
-        </div>
+        <h3 class="subscription-card__title">${sub.dashboard_title}</h3>
+        <span class="subscription-card__badge subscription-card__badge--${sub.status}">${sub.status_display}</span>
       </div>
       <div class="subscription-card__info">
         <div class="subscription-card__info-item">
           <span class="subscription-card__label">Дата завершения:</span>
-          <strong>${formatDate(sub.expiryDate)}</strong>
+          <strong>${formatDate(expiryDate)}</strong>
           ${daysUntil >= 0 ? `<span class="subscription-card__days">(${daysUntil} ${daysUntil === 1 ? 'день' : daysUntil < 5 ? 'дня' : 'дней'})</span>` : ''}
         </div>
         <div class="subscription-card__info-item">
           <span class="subscription-card__label">Сумма:</span>
-          <strong class="subscription-card__amount">${new Intl.NumberFormat('ru-RU').format(sub.amount)} ₽/мес</strong>
+          <strong class="subscription-card__amount">${new Intl.NumberFormat('ru-RU').format(sub.price_per_month)} ₽/мес</strong>
+        </div>
+        <div class="subscription-card__info-item">
+          <span class="subscription-card__label">Период:</span>
+          <strong>${sub.months} ${sub.months === 1 ? 'месяц' : sub.months < 5 ? 'месяца' : 'месяцев'}</strong>
         </div>
       </div>
       <div class="subscription-card__actions">
@@ -201,60 +218,43 @@ function renderPersonalData(cabinet) {
   const container = document.getElementById('cabinetPersonalData');
   if (!container) return;
   
+  const personalData = cabinet.personal_data || {};
+  const createdDate = new Date(cabinet.created_at);
+  
   let html = `
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Имя:</span>
+      <strong>${personalData.first_name || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Фамилия:</span>
+      <strong>${personalData.last_name || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Компания:</span>
+      <strong>${personalData.company || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Телефон:</span>
+      <strong>${personalData.phone || 'Не указано'}</strong>
+    </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Название кабинета:</span>
       <strong>${cabinet.name || 'Не указано'}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Название магазина:</span>
-      <strong>${cabinet.shopName || 'Не указано'}</strong>
+      <strong>${cabinet.shop_name || 'Не указано'}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Маркетплейс:</span>
-      <strong>${cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'}</strong>
-    </div>
-    <div class="cabinet-personal-data__item">
-      <span class="cabinet-personal-data__label">API ключ:</span>
-      <strong>${cabinet.apiKey || 'Не указано'}</strong>
+      <strong>${cabinet.marketplace_display || cabinet.marketplace}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Дата подключения:</span>
-      <strong>${formatDate(cabinet.connectedDate)}</strong>
+      <strong>${formatDate(createdDate)}</strong>
     </div>
   `;
-  
-  // Поля для OZON
-  if (cabinet.marketplace === 'OZON') {
-    html += `
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client ID (для Seller API OZON):</span>
-        <strong>${cabinet.ozonSellerClientId || 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client ID (для Performance API OZON):</span>
-        <strong>${cabinet.ozonPerformanceClientId || 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client secret (Performance API OZON):</span>
-        <strong>${cabinet.ozonPerformanceClientSecret || 'Не указано'}</strong>
-      </div>
-    `;
-  }
-  
-  // Поля для WB
-  if (cabinet.marketplace === 'WB') {
-    html += `
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Подключен ли Джем:</span>
-        <strong>${cabinet.gemConnected === 'yes' ? 'Да' : cabinet.gemConnected === 'no' ? 'Нет' : 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Количество артикулов для одной рекламной кампании:</span>
-        <strong>${cabinet.articlesPerCampaign || 'Не указано'}</strong>
-      </div>
-    `;
-  }
   
   container.innerHTML = html;
 }
@@ -317,28 +317,46 @@ function setupAddCabinetForm() {
       cabinetData.articlesPerCampaign = formData.get('articlesPerCampaign');
     }
     
-    // В реальном приложении здесь был бы запрос к API
-    console.log('Данные кабинета:', cabinetData);
-    
-    // Закрываем модальное окно формы
-    const addCabinetModal = document.getElementById('add-cabinet-modal');
-    if (addCabinetModal) {
-      addCabinetModal.setAttribute('aria-hidden', 'true');
-      addCabinetModal.style.display = 'none';
-      document.body.style.overflow = '';
-    }
-    
-    // Показываем модальное окно успеха
-    if (successModal) {
-      successModal.setAttribute('aria-hidden', 'false');
-      successModal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-    }
-    
-    // Очищаем форму
-    form.reset();
-    ozonFields.style.display = 'none';
-    wbFields.style.display = 'none';
+    // Отправка данных на сервер
+    fetch('/api/cabinets/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(cabinetData),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Закрываем модальное окно формы
+        const addCabinetModal = document.getElementById('add-cabinet-modal');
+        if (addCabinetModal) {
+          addCabinetModal.setAttribute('aria-hidden', 'true');
+          addCabinetModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+        
+        // Показываем модальное окно успеха
+        if (successModal) {
+          successModal.setAttribute('aria-hidden', 'false');
+          successModal.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+        
+        // Очищаем форму
+        form.reset();
+        ozonFields.style.display = 'none';
+        wbFields.style.display = 'none';
+      } else {
+        alert('Ошибка при создании кабинета: ' + (data.error || 'Неизвестная ошибка'));
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка:', error);
+      alert('Ошибка при создании кабинета: ' + error.message);
+    });
   });
 }
 
@@ -672,4 +690,5 @@ if (document.readyState === 'loading') {
   // DOM уже загружен
   initCabinetPage();
 }
+
 

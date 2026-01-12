@@ -1,48 +1,49 @@
-// Моковые данные кабинетов
-function generateCabinetsData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  return [
-    {
-      id: '1',
-      name: 'Мой кабинет OZON',
-      connectedDate: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 дней назад
-      subscriptionsCount: 3,
-      marketplace: 'OZON',
-      shopName: 'Магазин Озон',
-      apiKey: 'ozon_api_key_12345',
-      ozonSellerClientId: 'seller_client_123',
-      ozonPerformanceClientId: 'performance_client_456',
-      ozonPerformanceClientSecret: 'performance_secret_789'
-    },
-    {
-      id: '2',
-      name: 'Кабинет Wildberries',
-      connectedDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000), // 15 дней назад
-      subscriptionsCount: 2,
-      marketplace: 'WB',
-      shopName: 'Магазин WB',
-      apiKey: 'wb_api_key_67890',
-      gemConnected: 'yes',
-      articlesPerCampaign: 50
-    },
-    {
-      id: '3',
-      name: 'Второй кабинет OZON',
-      connectedDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 дней назад
-      subscriptionsCount: 1,
-      marketplace: 'OZON',
-      shopName: 'Магазин Озон 2',
-      apiKey: 'ozon_api_key_54321',
-      ozonSellerClientId: 'seller_client_789',
-      ozonPerformanceClientId: 'performance_client_012',
-      ozonPerformanceClientSecret: 'performance_secret_345'
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
     }
-  ];
+  }
+  return '';
 }
 
-const cabinetsData = generateCabinetsData();
+// Загрузка кабинетов с API
+let cabinetsData = [];
+
+async function loadCabinets() {
+  try {
+    const response = await fetch('/api/cabinets/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки кабинетов');
+    }
+
+    const data = await response.json();
+    cabinetsData = data.map(cabinet => ({
+      id: cabinet.id,
+      name: cabinet.name,
+      connectedDate: new Date(cabinet.created_at),
+      subscriptionsCount: cabinet.subscriptions_count || 0,
+      marketplace: cabinet.marketplace,
+      shopName: cabinet.shop_name || '',
+    }));
+    
+    return cabinetsData;
+  } catch (error) {
+    console.error('Ошибка загрузки кабинетов:', error);
+    cabinetsData = [];
+    return [];
+  }
+}
 
 function formatDate(date) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -53,9 +54,13 @@ function formatDate(date) {
 }
 
 // Рендеринг карточек кабинетов на главной странице
-function renderCabinets() {
+async function renderCabinets() {
   const grid = document.getElementById('cabinetGrid');
   if (!grid) return;
+
+  grid.innerHTML = '<p class="cabinet-empty">Загрузка кабинетов...</p>';
+
+  await loadCabinets();
 
   grid.innerHTML = '';
 
@@ -87,7 +92,7 @@ function renderCabinets() {
     `;
     
     card.addEventListener('click', () => {
-      window.location.href = `cabinet-detail.html?id=${cabinet.id}`;
+      window.location.href = `/cabinet/cabinet-detail/?id=${cabinet.id}`;
     });
     
     grid.appendChild(card);
@@ -95,33 +100,49 @@ function renderCabinets() {
 }
 
 // Рендеринг страницы детального просмотра кабинета
-function renderCabinetDetail() {
+async function renderCabinetDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const cabinetId = urlParams.get('id');
   
   if (!cabinetId) {
-    window.location.href = 'cabinet.html';
+    window.location.href = '/cabinet/';
     return;
   }
   
-  const cabinet = cabinetsData.find(c => c.id === cabinetId);
-  
-  if (!cabinet) {
-    window.location.href = 'cabinet.html';
-    return;
+  try {
+    const response = await fetch(`/api/cabinets/${cabinetId}/`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        window.location.href = '/cabinet/';
+        return;
+      }
+      throw new Error('Ошибка загрузки кабинета');
+    }
+
+    const cabinet = await response.json();
+    
+    // Устанавливаем заголовок
+    const titleElement = document.getElementById('cabinetDetailTitle');
+    if (titleElement) {
+      titleElement.textContent = cabinet.name;
+    }
+    
+    // Рендерим подписки
+    renderCabinetSubscriptions(cabinet);
+    
+    // Рендерим личные данные
+    renderPersonalData(cabinet);
+  } catch (error) {
+    console.error('Ошибка загрузки кабинета:', error);
+    window.location.href = '/cabinet/';
   }
-  
-  // Устанавливаем заголовок
-  const titleElement = document.getElementById('cabinetDetailTitle');
-  if (titleElement) {
-    titleElement.textContent = cabinet.name;
-  }
-  
-  // Рендерим подписки (используем данные из dashboard.js)
-  renderCabinetSubscriptions(cabinet);
-  
-  // Рендерим личные данные
-  renderPersonalData(cabinet);
 }
 
 // Рендеринг подписок кабинета
@@ -129,29 +150,7 @@ function renderCabinetSubscriptions(cabinet) {
   const grid = document.getElementById('cabinetSubscriptionsGrid');
   if (!grid) return;
   
-  // Получаем данные подписок из dashboard.js (если доступны) или используем моковые данные
-  const subscriptions = [
-    {
-      id: '1',
-      title: 'Продажи и финансы',
-      options: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries', '1 кабинет'],
-      markets: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'],
-      expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-      amount: 18000,
-      status: 'active',
-      isActive: true
-    },
-    {
-      id: '2',
-      title: 'Оптимизатор рекламы',
-      options: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries', '1 кабинет'],
-      markets: [cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'],
-      expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-      amount: 15000,
-      status: 'active',
-      isActive: true
-    }
-  ];
+  const subscriptions = cabinet.subscriptions || [];
   
   grid.innerHTML = '';
   
@@ -164,27 +163,27 @@ function renderCabinetSubscriptions(cabinet) {
     const card = document.createElement('article');
     card.className = 'subscription-card';
     
-    const daysUntil = Math.ceil((sub.expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+    const expiryDate = new Date(sub.end_date);
+    const daysUntil = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
     
     card.innerHTML = `
       <div class="subscription-card__header">
-        <h3 class="subscription-card__title">${sub.title}</h3>
-      </div>
-      <div class="subscription-card__options">
-        <span class="subscription-card__label">Подключенные опции:</span>
-        <div class="subscription-card__chips">
-          ${sub.options.map(opt => `<span class="chip">${opt}</span>`).join('')}
-        </div>
+        <h3 class="subscription-card__title">${sub.dashboard_title}</h3>
+        <span class="subscription-card__badge subscription-card__badge--${sub.status}">${sub.status_display}</span>
       </div>
       <div class="subscription-card__info">
         <div class="subscription-card__info-item">
           <span class="subscription-card__label">Дата завершения:</span>
-          <strong>${formatDate(sub.expiryDate)}</strong>
+          <strong>${formatDate(expiryDate)}</strong>
           ${daysUntil >= 0 ? `<span class="subscription-card__days">(${daysUntil} ${daysUntil === 1 ? 'день' : daysUntil < 5 ? 'дня' : 'дней'})</span>` : ''}
         </div>
         <div class="subscription-card__info-item">
           <span class="subscription-card__label">Сумма:</span>
-          <strong class="subscription-card__amount">${new Intl.NumberFormat('ru-RU').format(sub.amount)} ₽/мес</strong>
+          <strong class="subscription-card__amount">${new Intl.NumberFormat('ru-RU').format(sub.price_per_month)} ₽/мес</strong>
+        </div>
+        <div class="subscription-card__info-item">
+          <span class="subscription-card__label">Период:</span>
+          <strong>${sub.months} ${sub.months === 1 ? 'месяц' : sub.months < 5 ? 'месяца' : 'месяцев'}</strong>
         </div>
       </div>
       <div class="subscription-card__actions">
@@ -201,60 +200,43 @@ function renderPersonalData(cabinet) {
   const container = document.getElementById('cabinetPersonalData');
   if (!container) return;
   
+  const personalData = cabinet.personal_data || {};
+  const createdDate = new Date(cabinet.created_at);
+  
   let html = `
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Имя:</span>
+      <strong>${personalData.first_name || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Фамилия:</span>
+      <strong>${personalData.last_name || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Компания:</span>
+      <strong>${personalData.company || 'Не указано'}</strong>
+    </div>
+    <div class="cabinet-personal-data__item">
+      <span class="cabinet-personal-data__label">Телефон:</span>
+      <strong>${personalData.phone || 'Не указано'}</strong>
+    </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Название кабинета:</span>
       <strong>${cabinet.name || 'Не указано'}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Название магазина:</span>
-      <strong>${cabinet.shopName || 'Не указано'}</strong>
+      <strong>${cabinet.shop_name || 'Не указано'}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Маркетплейс:</span>
-      <strong>${cabinet.marketplace === 'OZON' ? 'OZON' : 'Wildberries'}</strong>
-    </div>
-    <div class="cabinet-personal-data__item">
-      <span class="cabinet-personal-data__label">API ключ:</span>
-      <strong>${cabinet.apiKey || 'Не указано'}</strong>
+      <strong>${cabinet.marketplace_display || cabinet.marketplace}</strong>
     </div>
     <div class="cabinet-personal-data__item">
       <span class="cabinet-personal-data__label">Дата подключения:</span>
-      <strong>${formatDate(cabinet.connectedDate)}</strong>
+      <strong>${formatDate(createdDate)}</strong>
     </div>
   `;
-  
-  // Поля для OZON
-  if (cabinet.marketplace === 'OZON') {
-    html += `
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client ID (для Seller API OZON):</span>
-        <strong>${cabinet.ozonSellerClientId || 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client ID (для Performance API OZON):</span>
-        <strong>${cabinet.ozonPerformanceClientId || 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Client secret (Performance API OZON):</span>
-        <strong>${cabinet.ozonPerformanceClientSecret || 'Не указано'}</strong>
-      </div>
-    `;
-  }
-  
-  // Поля для WB
-  if (cabinet.marketplace === 'WB') {
-    html += `
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Подключен ли Джем:</span>
-        <strong>${cabinet.gemConnected === 'yes' ? 'Да' : cabinet.gemConnected === 'no' ? 'Нет' : 'Не указано'}</strong>
-      </div>
-      <div class="cabinet-personal-data__item">
-        <span class="cabinet-personal-data__label">Количество артикулов для одной рекламной кампании:</span>
-        <strong>${cabinet.articlesPerCampaign || 'Не указано'}</strong>
-      </div>
-    `;
-  }
   
   container.innerHTML = html;
 }
@@ -317,66 +299,179 @@ function setupAddCabinetForm() {
       cabinetData.articlesPerCampaign = formData.get('articlesPerCampaign');
     }
     
-    // В реальном приложении здесь был бы запрос к API
-    console.log('Данные кабинета:', cabinetData);
-    
-    // Закрываем модальное окно формы
-    const addCabinetModal = document.getElementById('add-cabinet-modal');
-    if (addCabinetModal) {
-      addCabinetModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-    
-    // Показываем модальное окно успеха
-    if (successModal) {
-      successModal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      
-      // Обработчик закрытия модального окна успеха с редиректом
-      const closeSuccessModal = (e) => {
-        if (e) e.preventDefault();
-        successModal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-        // Небольшая задержка перед редиректом для плавности
-        setTimeout(() => {
-          window.location.href = 'cabinet.html';
-        }, 100);
-      };
-      
-      // Удаляем старые обработчики и добавляем новые
-      const overlay = successModal.querySelector('.modal__overlay');
-      const closeBtn = successModal.querySelector('.modal__close');
-      const successBtn = successModal.querySelector('.button');
-      
-      // Клонируем элементы для удаления старых обработчиков
-      if (overlay) {
-        const newOverlay = overlay.cloneNode(true);
-        overlay.replaceWith(newOverlay);
-        newOverlay.addEventListener('click', closeSuccessModal);
+    // Отправка данных на сервер
+    fetch('/api/cabinets/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(cabinetData),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Закрываем модальное окно формы
+        const addCabinetModal = document.getElementById('add-cabinet-modal');
+        if (addCabinetModal) {
+          addCabinetModal.setAttribute('aria-hidden', 'true');
+          addCabinetModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+        
+        // Показываем модальное окно успеха
+        if (successModal) {
+          successModal.setAttribute('aria-hidden', 'false');
+          successModal.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+        
+        // Очищаем форму
+        form.reset();
+        ozonFields.style.display = 'none';
+        wbFields.style.display = 'none';
+      } else {
+        alert('Ошибка при создании кабинета: ' + (data.error || 'Неизвестная ошибка'));
       }
-      if (closeBtn) {
-        const newCloseBtn = closeBtn.cloneNode(true);
-        closeBtn.replaceWith(newCloseBtn);
-        newCloseBtn.addEventListener('click', closeSuccessModal);
-      }
-      if (successBtn) {
-        const newSuccessBtn = successBtn.cloneNode(true);
-        successBtn.replaceWith(newSuccessBtn);
-        newSuccessBtn.addEventListener('click', closeSuccessModal);
-      }
-    }
-    
-    // Очищаем форму
-    form.reset();
-    ozonFields.style.display = 'none';
-    wbFields.style.display = 'none';
+    })
+    .catch(error => {
+      console.error('Ошибка:', error);
+      alert('Ошибка при создании кабинета: ' + error.message);
+    });
   });
 }
 
-// Настройка модальных окон (используется функционал из app.js)
-function setupModals() {
-  // Модальные окна обрабатываются в app.js
-  // Здесь только дополнительная логика для успешного модального окна
+// Управление модальным окном подключения кабинета
+function setupCabinetModal() {
+  console.log('=== Инициализация модальных окон ===');
+  
+  // Удаляем старые обработчики если есть
+  document.querySelectorAll('[data-cabinet-modal-open]').forEach(btn => {
+    btn.replaceWith(btn.cloneNode(true));
+  });
+  
+  // Функция для открытия модалки с анимацией
+  function openModal(modal) {
+    console.log('Открываем модалку:', modal.id);
+    
+    // Блокируем скролл body
+    document.body.style.overflow = 'hidden';
+    
+    // Показываем overlay
+    modal.style.display = 'flex';
+    
+    // Запускаем анимацию через requestAnimationFrame
+    requestAnimationFrame(() => {
+      modal.setAttribute('aria-hidden', 'false');
+    });
+  }
+  
+  // Функция для закрытия модалки с анимацией
+  function closeModal(modal) {
+    console.log('Закрываем модалку:', modal.id);
+    
+    // Начинаем анимацию закрытия
+    modal.setAttribute('aria-hidden', 'true');
+    
+    // Ждем окончания анимации и скрываем полностью
+    setTimeout(() => {
+      if (modal.getAttribute('aria-hidden') === 'true') {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }, 300); // Время должно совпадать с CSS transition (0.3s)
+  }
+  
+  // Вешаем обработчики через делегирование
+  document.addEventListener('click', function(e) {
+    const openButton = e.target.closest('[data-cabinet-modal-open]');
+    if (openButton) {
+      console.log('Клик на кнопке открытия через делегирование');
+      e.preventDefault();
+      const modalId = openButton.getAttribute('data-cabinet-modal-open');
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        openModal(modal);
+        return false;
+      }
+    }
+  });
+  
+  // Закрытие по крестику и overlay
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-cabinet-modal-close], .modal__overlay')) {
+      e.preventDefault();
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        closeModal(modal);
+      }
+    }
+  });
+  
+  // Закрытие по Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const openModalElement = document.querySelector('.modal[aria-hidden="false"]');
+      if (openModalElement) {
+        console.log('Закрытие модалки по Escape');
+        closeModal(openModalElement);
+      }
+    }
+  });
+  
+  // Закрытие для success-modal (у него свои data-атрибуты)
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-cabinet-success-modal-close]')) {
+      e.preventDefault();
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        closeModal(modal);
+      }
+    }
+  });
+}
+
+// Управление модальным окном успеха
+function setupSuccessModal() {
+  const successModal = document.getElementById('success-modal');
+  if (!successModal) return;
+
+  function closeSuccessModal() {
+    console.log('Закрытие success-modal');
+    successModal.setAttribute('aria-hidden', 'true');
+    
+    // Ждем окончания анимации
+    setTimeout(() => {
+      if (successModal.getAttribute('aria-hidden') === 'true') {
+        successModal.style.display = 'none';
+        document.body.style.overflow = '';
+        // Небольшая задержка перед редиректом для плавности
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      }
+    }, 300);
+  }
+
+  // Закрытие модального окна успеха
+  const closeButtons = document.querySelectorAll('[data-cabinet-success-modal-close]');
+  closeButtons.forEach((button) => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeSuccessModal();
+    });
+  });
+
+  // Закрытие по клику на overlay
+  const overlay = successModal.querySelector('.modal__overlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeSuccessModal();
+      }
+    });
+  }
 }
 
 // Настройка Power BI блока
@@ -426,84 +521,156 @@ function setupPowerBI() {
   }
 }
 
-// Инициализация модальных окон (если app.js еще не загружен)
-function ensureModalsInitialized() {
-  // Проверяем, инициализированы ли уже модальные окна
-  const openButtons = document.querySelectorAll('[data-modal-open]');
-  if (openButtons.length > 0) {
-    openButtons.forEach((button) => {
-      // Проверяем, есть ли уже обработчик
-      if (!button.hasAttribute('data-modal-initialized')) {
-        button.setAttribute('data-modal-initialized', 'true');
-        button.addEventListener('click', (e) => {
-          e.preventDefault();
-          const modalId = button.getAttribute('data-modal-open');
-          const modal = document.getElementById(modalId);
-          if (modal) {
-            modal.setAttribute('aria-hidden', 'false');
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-          }
+
+// Инициализация
+function initCabinetPage() {
+  console.log('=== Инициализация страницы кабинетов ===');
+  
+  // 1. Проверка загрузки DOM
+  console.log('DOM readyState:', document.readyState);
+  console.log('URL:', window.location.href);
+  
+  // 2. Проверка наличия элементов
+  const addButton = document.querySelector('[data-cabinet-modal-open="add-cabinet-modal"]');
+  const modal = document.getElementById('add-cabinet-modal');
+  
+  console.log('Кнопка "Подключить новый кабинет" найдена:', !!addButton);
+  console.log('Модальное окно найдено:', !!modal);
+  
+  if (addButton) {
+    console.log('Кнопка HTML:', addButton.outerHTML);
+    
+    // 3. Проверка стилей кнопки
+    const styles = window.getComputedStyle(addButton);
+    console.log('Стили кнопки:', {
+      pointerEvents: styles.pointerEvents,
+      cursor: styles.cursor,
+      opacity: styles.opacity,
+      display: styles.display,
+      visibility: styles.visibility
+    });
+    
+    // 4. Проверка родительских элементов на события
+    let parent = addButton.parentElement;
+    let level = 0;
+    while (parent && level < 5) {
+      console.log(`Родитель ${level}:`, parent.tagName, parent.className);
+      parent = parent.parentElement;
+      level++;
+    }
+    
+    // 5. Два разных обработчика для отладки
+    addButton.addEventListener('click', function(e) {
+      console.log('КЛИК ПО КНОПКЕ (первый обработчик)');
+      console.log('Event:', {
+        type: e.type,
+        target: e.target.tagName,
+        currentTarget: e.currentTarget.tagName,
+        defaultPrevented: e.defaultPrevented,
+        bubbles: e.bubbles,
+        cancelable: e.cancelable
+      });
+      // e.preventDefault();
+      // e.stopPropagation();
+    }, true); // capture phase
+    
+    addButton.addEventListener('click', function(e) {
+      console.log('КЛИК ПО КНОПКЕ (второй обработчик)');
+      console.log('Event phase:', e.eventPhase);
+      
+      // Ручное открытие модалки
+      console.log('Пытаемся открыть модалку...');
+      const modal = document.getElementById('add-cabinet-modal');
+      if (modal) {
+        console.log('Модалка перед открытием:', {
+          display: modal.style.display,
+          ariaHidden: modal.getAttribute('aria-hidden'),
+          classList: modal.classList.toString()
+        });
+        
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        
+        console.log('Модалка после открытия:', {
+          display: modal.style.display,
+          ariaHidden: modal.getAttribute('aria-hidden')
         });
       }
     });
   }
   
-  const closeButtons = document.querySelectorAll('[data-modal-close]');
-  closeButtons.forEach((button) => {
-    if (!button.hasAttribute('data-modal-initialized')) {
-      button.setAttribute('data-modal-initialized', 'true');
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        const modal = button.closest('.modal');
-        if (modal) {
-          modal.setAttribute('aria-hidden', 'true');
-          modal.style.display = 'none';
-          document.body.style.overflow = '';
-        }
-      });
-    }
+  if (modal) {
+    console.log('Модалка стили:', {
+      display: modal.style.display,
+      ariaHidden: modal.getAttribute('aria-hidden'),
+      zIndex: modal.style.zIndex || window.getComputedStyle(modal).zIndex
+    });
+    
+    // Проверка CSS стилей модалки
+    const modalStyles = window.getComputedStyle(modal);
+    console.log('Модалка computed styles:', {
+      display: modalStyles.display,
+      position: modalStyles.position,
+      zIndex: modalStyles.zIndex,
+      opacity: modalStyles.opacity,
+      visibility: modalStyles.visibility
+    });
+  }
+  
+  // 6. Проверка других модальных окон
+  const allModals = document.querySelectorAll('.modal');
+  console.log(`Всего модальных окон: ${allModals.length}`);
+  allModals.forEach((m, i) => {
+    console.log(`Модалка ${i}:`, {
+      id: m.id,
+      display: m.style.display,
+      ariaHidden: m.getAttribute('aria-hidden')
+    });
   });
   
-  // Обработка клика на overlay
-  document.querySelectorAll('.modal__overlay').forEach((overlay) => {
-    if (!overlay.hasAttribute('data-modal-initialized')) {
-      overlay.setAttribute('data-modal-initialized', 'true');
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          const modal = overlay.closest('.modal');
-          if (modal) {
-            modal.setAttribute('aria-hidden', 'true');
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-          }
-        }
+  // 7. Проверка наложения элементов
+  const rect = addButton?.getBoundingClientRect();
+  if (rect) {
+    console.log('Позиция кнопки:', rect);
+    
+    // Проверяем, что находится под курсором в точке клика
+    document.addEventListener('click', function(e) {
+      const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+      console.log('Элемент под курсором в момент клика:', {
+        tag: elementAtPoint?.tagName,
+        class: elementAtPoint?.className,
+        id: elementAtPoint?.id,
+        element: elementAtPoint
       });
-    }
-  });
-}
-
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-  // Убеждаемся, что модальные окна инициализированы
-  ensureModalsInitialized();
+    }, { once: true });
+  }
   
+  // 8. Инициализация остальных функций
+  console.log('Инициализация модальных окон...');
+  setupCabinetModal();
+  setupSuccessModal();
   setupAddCabinetForm();
   setupPowerBI();
   
-  // Определяем, на какой странице мы находимся
+  // 9. Проверка, на какой странице мы находимся
   if (document.getElementById('cabinetGrid')) {
-    // Главная страница кабинетов
+    console.log('Рендерим главную страницу кабинетов');
     renderCabinets();
   } else if (document.getElementById('cabinetSubscriptionsGrid')) {
-    // Страница детального просмотра кабинета
+    console.log('Рендерим детальную страницу кабинета');
     renderCabinetDetail();
   }
   
-  // Повторная инициализация модальных окон после небольшой задержки
-  // на случай, если app.js загружается асинхронно
-  setTimeout(() => {
-    ensureModalsInitialized();
-  }, 100);
-});
+  console.log('=== Инициализация завершена ===');
+}
+
+// Инициализация при загрузке DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCabinetPage);
+} else {
+  // DOM уже загружен
+  initCabinetPage();
+}
+
 

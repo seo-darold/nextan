@@ -49,9 +49,19 @@
         </ul>
       </nav>
       <div class="header__actions">
-        <a class="header__user" href="{{ dashboard_url }}" aria-label="Личный кабинет">
-          <span class="header__user-icon" aria-hidden="true">👤</span>
-        </a>
+        <div class="header__user-info">
+          {% if user.is_authenticated %}
+            <span class="header__user-email">{{ user.email }}</span>
+          {% endif %}
+        </div>
+        <form method="post" action="{% url 'core:logout' %}" style="display: inline; cursor: pointer;">
+          {% csrf_token %}
+          <button type="submit" style="cursor: pointer;" class="header__user" aria-label="Выйти">
+            <span class="header__user-icon" aria-hidden="true">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </span>
+          </button>
+        </form>
       </div>
     </div>
   </header>

@@ -43,10 +43,17 @@
           <li class="nav__item"><a class="nav__link {% if request.resolver_match.url_name == 'contacts' %}active{% endif %}" href="{{ contacts_url }}" {% if request.path == contacts_url %}aria-current="page"{% endif %}>Контакты</a></li>
           <li class="nav__item nav__item--actions">
             <div class="nav__actions">
-              <button class="nav__action nav__action--login" aria-label="Личный кабинет" data-modal-open="login-modal">
-                <span class="nav__action-icon" aria-hidden="true">👤</span>
-                <span class="nav__action-text">Личный кабинет</span>
-              </button>
+              {% if user.is_authenticated %}
+                <a class="nav__action nav__action--login" href="{% url 'content:dashboard' %}" aria-label="Личный кабинет">
+                  <span class="nav__action-icon" aria-hidden="true">👤</span>
+                  <span class="nav__action-text">Личный кабинет</span>
+                </a>
+              {% else %}
+                <button class="nav__action nav__action--login" aria-label="Личный кабинет" data-modal-open="login-modal">
+                  <span class="nav__action-icon" aria-hidden="true">👤</span>
+                  <span class="nav__action-text">Личный кабинет</span>
+                </button>
+              {% endif %}
               <a class="nav__action nav__action--cart" href="{% url 'cart:cart' %}" aria-label="Корзина">
                 <span class="nav__action-icon" aria-hidden="true">🛒</span>
                 <span class="nav__action-text">Корзина</span>
@@ -57,9 +64,15 @@
         </ul>
       </nav>
       <div class="header__actions">
-        <button class="header__login" aria-label="Войти в личный кабинет" data-modal-open="login-modal">
-          <span class="header__login-icon" aria-hidden="true">👤</span>
-        </button>
+        {% if user.is_authenticated %}
+          <a class="header__login" href="{% url 'content:dashboard' %}" aria-label="Личный кабинет">
+            <span class="header__login-icon" aria-hidden="true">👤</span>
+          </a>
+        {% else %}
+          <button class="header__login" aria-label="Войти в личный кабинет" data-modal-open="login-modal">
+            <span class="header__login-icon" aria-hidden="true">👤</span>
+          </button>
+        {% endif %}
         <a class="cart-indicator" href="{% url 'cart:cart' %}" aria-label="Корзина">
           <span class="cart-indicator__icon" aria-hidden="true">🛒</span>
           <span class="cart-indicator__value" data-cart-total="0">0 ₽</span>
@@ -153,15 +166,17 @@
       <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
       <h2 class="modal__title" id="login-modal-title">Вход в личный кабинет</h2>
       
-      <form class="form form--stacked modal__form">
+      <form class="form form--stacked modal__form" id="loginForm" method="post" action="{% url 'core:login' %}">
+        {% csrf_token %}
         <label class="form__field">
-          <span>Email или логин</span>
-          <input type="text" placeholder="name@company.ru" required>
+          <span>Email</span>
+          <input type="email" name="email" id="loginEmail" placeholder="name@company.ru" required>
         </label>
         <label class="form__field">
           <span>Пароль</span>
-          <input type="password" placeholder="••••••••" required>
+          <input type="password" name="password" id="loginPassword" placeholder="••••••••" required>
         </label>
+        <div id="loginError" class="form__error" style="display: none;"></div>
         <button type="submit" class="button button--primary button--block">Войти</button>
       </form>
 

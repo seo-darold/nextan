@@ -42,11 +42,18 @@ async function apiRequest(url, options = {}) {
 }
 
 function getCsrfToken() {
+  // Сначала пытаемся получить из cookie
   const cookieValue = document.cookie
     .split('; ')
     .find(row => row.startsWith('csrftoken='))
     ?.split('=')[1];
-  return cookieValue || '';
+  if (cookieValue) return cookieValue;
+  
+  // Если нет в cookie, пытаемся получить из скрытого поля формы
+  const csrfInput = qs('input[name="csrfmiddlewaretoken"]');
+  if (csrfInput) return csrfInput.value;
+  
+  return '';
 }
 
 // Загрузка дашбордов из API
@@ -608,15 +615,320 @@ function initScrollLinks() {
 function initModal() {
   const openButtons = qsa('[data-modal-open]');
   const closeButtons = qsa('[data-modal-close]');
+  
+  // Обработка формы входа - блокируем стандартное поведение
+  // Ищем форму по классам: form form--stacked modal__form внутри модального окна login-modal
+  const loginModal = qs('#login-modal');
+  const loginForm = loginModal ? qs('form.form.form--stacked.modal__form', loginModal) : null;
+  
+  if (loginForm) {
+    console.log('Найдена форма входа по классам:', loginForm);
+    
+    // Обработчик на кнопку submit - программно вызываем submit формы
+    const submitButton = qs('button[type="submit"]', loginForm);
+    if (submitButton) {
+      console.log('Найдена кнопка "Войти":', submitButton);
+      submitButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Кнопка "Войти" нажата, вызываем submit формы');
+        // Программно вызываем submit формы, чтобы сработал обработчик на document
+        loginForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      });
+    }
+  } else {
+    console.warn('Форма входа не найдена. Искали: form.form.form--stacked.modal__form внутри #login-modal');
+  }
+  
+  // Обработка формы входа через делегирование событий на уровне document
+  // Ищем форму с классами: form form--stacked modal__form и id="loginForm"
+  if (!document.loginFormHandlerAdded) {
+    document.loginFormHandlerAdded = true;
+    
+    console.log('Добавлен глобальный обработчик submit для формы входа');
+    
+    // Используем capture phase (true), чтобы перехватить событие раньше всех
+    // ВАЖНО: обрабатываем только события типа 'submit', не 'click'
+    document.addEventListener('submit', async (e) => {
+      console.log('Событие submit перехвачено на document:', e.target, e.type);
+      
+      // Проверяем, что это действительно событие submit формы
+      if (e.type !== 'submit') {
+        console.log('Это не событие submit, пропускаем');
+        return; // Это не событие submit, пропускаем
+      }
+      
+      // Проверяем, что это форма входа по классам: form form--stacked modal__form
+      let loginForm = null;
+      
+      if (e.target.tagName === 'FORM') {
+        console.log('Событие от формы:', e.target, 'классы:', e.target.className);
+        // Проверяем по классам
+        if (e.target.classList.contains('form') && 
+            e.target.classList.contains('form--stacked') && 
+            e.target.classList.contains('modal__form')) {
+          // Проверяем, что форма находится внутри модального окна login-modal
+          const modal = e.target.closest('#login-modal');
+          if (modal) {
+            loginForm = e.target;
+            console.log('Найдена форма входа по target (классы):', loginForm);
+          } else {
+            console.log('Форма не находится внутри #login-modal');
+          }
+        } else {
+          console.log('Форма не имеет нужных классов');
+        }
+      } else {
+        console.log('Событие не от формы, target:', e.target.tagName);
+        // Если событие от кнопки, ищем форму через closest
+        loginForm = e.target.closest('form.form.form--stacked.modal__form');
+        if (loginForm) {
+          // Проверяем, что форма находится внутри модального окна login-modal
+          const modal = loginForm.closest('#login-modal');
+          if (modal) {
+            console.log('Найдена форма входа через closest (классы):', loginForm);
+          } else {
+            console.log('Форма через closest не находится внутри #login-modal');
+            loginForm = null;
+          }
+        } else {
+          console.log('Форма не найдена через closest');
+        }
+      }
+      
+      if (!loginForm) {
+        console.log('Это не форма входа, позволяем работать стандартным образом');
+        return; // Это не форма входа, позволяем работать стандартным образом
+      }
+      
+      // ПРЕВЕНТИМ ОТПРАВКУ ФОРМЫ
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      console.log('Форма входа: отправка предотвращена!', loginForm);
+      
+      // Ищем поля формы - могут быть без ID, ищем по типу и позиции
+      const emailInput = qs('input[type="text"], input[type="email"]', loginForm);
+      const passwordInput = qs('input[type="password"]', loginForm);
+      const errorDiv = qs('#loginError', loginForm) || qs('.form__error', loginForm);
+      
+      // Создаем div для ошибок, если его нет
+      let errorContainer = errorDiv;
+      if (!errorContainer) {
+        errorContainer = document.createElement('div');
+        errorContainer.className = 'form__error';
+        errorContainer.id = 'loginError';
+        errorContainer.style.display = 'none';
+        // Вставляем перед кнопкой submit
+        const submitButton = qs('button[type="submit"]', loginForm);
+        if (submitButton) {
+          loginForm.insertBefore(errorContainer, submitButton);
+        } else {
+          loginForm.appendChild(errorContainer);
+        }
+      }
+      
+      // Скрываем предыдущие ошибки
+      errorContainer.style.display = 'none';
+      errorContainer.textContent = '';
+      
+      const email = emailInput?.value?.trim();
+      const password = passwordInput?.value;
+      
+      // Базовая валидация на клиенте
+      if (!email || !password) {
+        errorContainer.textContent = 'Заполните все поля';
+        errorContainer.style.display = 'block';
+        return;
+      }
+      
+      // Получаем CSRF токен из формы или cookie
+      const csrfInput = qs('input[name="csrfmiddlewaretoken"]', loginForm);
+      let csrfToken = csrfInput?.value || getCsrfToken();
+      
+      // Если CSRF токена нет, получаем его через AJAX
+      if (!csrfToken) {
+        try {
+          const csrfResponse = await fetch('/login/', { method: 'GET', credentials: 'same-origin' });
+          const csrfHtml = await csrfResponse.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(csrfHtml, 'text/html');
+          const csrfInputFromPage = doc.querySelector('input[name="csrfmiddlewaretoken"]');
+          if (csrfInputFromPage) {
+            csrfToken = csrfInputFromPage.value;
+            // Добавляем CSRF токен в форму, если его там нет
+            if (!csrfInput) {
+              const hiddenInput = document.createElement('input');
+              hiddenInput.type = 'hidden';
+              hiddenInput.name = 'csrfmiddlewaretoken';
+              hiddenInput.value = csrfToken;
+              loginForm.appendChild(hiddenInput);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to get CSRF token:', err);
+        }
+      }
+      
+      if (!csrfToken) {
+        console.error('CSRF token not found');
+        errorContainer.textContent = 'Ошибка безопасности. Перезагрузите страницу.';
+        errorContainer.style.display = 'block';
+        return;
+      }
+      
+      // Определяем URL для отправки
+      // Явно указываем /login/, так как в реальном HTML формы может не быть action или он может быть неправильным
+      let loginUrl = '/login/';
+      
+      // Если форма имеет action и это валидный URL, используем его
+      if (loginForm.action && 
+          loginForm.action.trim() !== '' && 
+          loginForm.action !== window.location.href &&
+          !loginForm.action.endsWith('/?') &&
+          loginForm.action.includes('/login')) {
+        loginUrl = loginForm.action;
+      }
+      
+      console.log('URL формы (action):', loginForm.action);
+      console.log('Используемый URL для авторизации:', loginUrl);
+      
+      // Отправляем AJAX запрос
+      try {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        // Убеждаемся, что URL абсолютный или относительный правильно
+        let finalUrl = loginUrl;
+        if (!loginUrl.startsWith('http://') && !loginUrl.startsWith('https://') && !loginUrl.startsWith('/')) {
+          finalUrl = '/' + loginUrl;
+        }
+        
+        console.log('Отправка запроса на авторизацию:', finalUrl, 'email:', email);
+        console.log('FormData:', Array.from(formData.entries()));
+        
+        const response = await fetch(finalUrl, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest', // Помечаем как AJAX запрос
+          },
+          credentials: 'same-origin', // Важно для сохранения cookies и сессии
+        });
+        
+        console.log('Статус ответа:', response.status);
+        console.log('URL ответа:', response.url);
+        
+        // Если 404, значит URL не найден
+        if (response.status === 404) {
+          console.error('Ошибка 404: URL /login/ не найден на сервере');
+          errorContainer.textContent = 'Ошибка: страница авторизации не найдена. Обратитесь к администратору.';
+          errorContainer.style.display = 'block';
+          return;
+        }
+        
+        if (response.ok) {
+          const data = await response.json().catch(() => null);
+          
+          console.log('Данные ответа:', data);
+          
+          // Закрываем модальное окно
+          const modal = loginForm.closest('#login-modal');
+          if (modal) {
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+          }
+          
+          // Если это JSON ответ (AJAX), обрабатываем редирект
+          if (data && data.redirect_url) {
+            console.log('Редирект на:', data.redirect_url);
+            window.location.href = data.redirect_url;
+          } else if (data && data.success) {
+            // Если успех, но нет redirect_url, переходим на dashboard
+            console.log('Авторизация успешна, редирект на /dashboard/');
+            window.location.href = '/dashboard/';
+          } else {
+            // Если это HTML редирект, проверяем заголовок Location
+            const redirectUrl = response.headers.get('Location');
+            if (redirectUrl) {
+              console.log('Редирект через заголовок Location:', redirectUrl);
+              window.location.href = redirectUrl;
+            } else {
+              // Если нет явного редиректа, пробуем перейти на dashboard
+              console.log('Редирект на /dashboard/ (по умолчанию)');
+              window.location.href = '/dashboard/';
+            }
+          }
+        } else {
+          // Обработка ошибок
+          try {
+            const data = await response.json();
+            console.log('Ошибка авторизации:', data);
+            
+            if (data && data.errors) {
+              // Обрабатываем ошибки валидации
+              let errorMessages = [];
+              
+              // Ошибки могут быть в разных форматах
+              if (Array.isArray(data.errors)) {
+                errorMessages = data.errors;
+              } else if (typeof data.errors === 'object') {
+                // Если это объект с полями формы
+                Object.values(data.errors).forEach(fieldErrors => {
+                  if (Array.isArray(fieldErrors)) {
+                    errorMessages.push(...fieldErrors);
+                  } else if (typeof fieldErrors === 'string') {
+                    errorMessages.push(fieldErrors);
+                  }
+                });
+              }
+              
+              const errorText = errorMessages.length > 0 
+                ? errorMessages.join(', ') 
+                : 'Ошибка входа. Проверьте данные.';
+              
+              errorContainer.textContent = errorText;
+              errorContainer.style.display = 'block';
+            } else {
+              // Если нет структурированных ошибок
+              errorContainer.textContent = 'Ошибка входа. Проверьте данные.';
+              errorContainer.style.display = 'block';
+            }
+          } catch (parseError) {
+            // Если не удалось распарсить JSON (например, HTML ответ)
+            console.error('Не удалось распарсить ответ с ошибкой:', parseError);
+            errorContainer.textContent = 'Ошибка входа. Проверьте email и пароль.';
+            errorContainer.style.display = 'block';
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при отправке запроса:', error);
+        errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
+        errorContainer.style.display = 'block';
+      }
+    }, true); // Используем capture phase для перехвата события раньше всех
+  }
 
+  console.log('Найдено кнопок для открытия модальных окон:', openButtons.length);
+  
   openButtons.forEach((button) => {
+    console.log('Добавлен обработчик для кнопки:', button, 'data-modal-open:', button.dataset.modalOpen);
     button.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const modalId = button.dataset.modalOpen;
+      console.log('Клик по кнопке открытия модального окна:', modalId);
       const modal = qs(`#${modalId}`);
       if (modal) {
+        console.log('Модальное окно найдено, открываем:', modal);
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+      } else {
+        console.warn('Модальное окно не найдено:', modalId);
       }
     });
   });
@@ -653,14 +965,6 @@ function initModal() {
       }
     }
   });
-
-  const loginForm = qs('.modal__form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      alert('Функция входа будет доступна после настройки авторизации');
-    });
-  }
 
   qsa('.button--social').forEach((button) => {
     button.addEventListener('click', (e) => {
@@ -894,3 +1198,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Обновляем счётчик непрочитанных сообщений поддержки
   updateUnreadSupportCount();
 });
+

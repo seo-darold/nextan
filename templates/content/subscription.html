@@ -4,6 +4,7 @@
 {% block title %}Управление подпиской — НекстАналитика{% endblock %}
 
 {% block dashboard_content %}
+  <div id="userEmail" data-user-email="{{ user_email }}" style="display: none;"></div>
   <section class="section page-hero">
     <a href="{% url 'content:dashboard' %}" class="breadcrumbs">
       <span>← Назад к подпискам</span>

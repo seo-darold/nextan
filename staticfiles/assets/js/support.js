@@ -1,88 +1,51 @@
-// Генерация моковых данных тикетов
-function generateTicketsData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tickets = [];
-  
-  const subjects = [
-    'Не работает дашборд продаж',
-    'Вопрос по настройке рекламы',
-    'Проблема с подключением к Wildberries',
-    'Нужна помощь с аналитикой',
-    'Вопрос по подписке',
-    'Ошибка в отчёте по логистике',
-    'Как экспортировать данные?',
-    'Проблема с синхронизацией',
-    'Вопрос по тарифам',
-    'Нужна консультация по API'
-  ];
-
-  const previews = [
-    'Здравствуйте! После обновления не отображаются данные за последние несколько дней...',
-    'Подскажите, пожалуйста, как настроить автоматическую оптимизацию рекламных кампаний...',
-    'Не могу подключить кабинет Wildberries. Выдаёт ошибку при авторизации...',
-    'Хотел бы получить более детальную аналитику по продажам за последний месяц...',
-    'Можно ли изменить тариф подписки в середине периода?',
-    'В отчёте по логистике отображаются неверные данные по складским остаткам...',
-    'Какие форматы экспорта поддерживаются? Нужен Excel для дальнейшей обработки...',
-    'Данные не синхронизируются с маркетплейсом уже 2 дня. Что делать?',
-    'Интересует информация о возможностях расширенного тарифа...',
-    'Планирую интегрировать вашу систему через API. Есть ли документация?'
-  ];
-
-  const statuses = ['open', 'pending', 'closed'];
-  const statusLabels = {
-    'open': 'Открыт',
-    'pending': 'В ожидании',
-    'closed': 'Закрыт'
-  };
-
-  // Генерируем тикеты за последние 8 месяцев
-  // Используем детерминированный подход для стабильности данных
-  const seed = 12345; // Для стабильной генерации
-  
-  for (let monthOffset = 0; monthOffset < 8; monthOffset++) {
-    // По 4 тикета в месяц для стабильности
-    const ticketsPerMonth = 4;
-    
-    for (let i = 0; i < ticketsPerMonth; i++) {
-      const ticketDate = new Date(today);
-      ticketDate.setMonth(today.getMonth() - monthOffset);
-      
-      // Детерминированный день месяца
-      const day = 5 + i * 7;
-      ticketDate.setDate(day > 28 ? 28 : day);
-      ticketDate.setHours(9 + (i % 8), (i * 13) % 60, 0, 0);
-      
-      // Проверяем, что дата не в будущем
-      if (ticketDate <= new Date()) {
-        const subjectIndex = (monthOffset * ticketsPerMonth + i) % subjects.length;
-        // Детерминированный статус
-        const statusIndex = (monthOffset * ticketsPerMonth + i) % statuses.length;
-        const status = statuses[statusIndex];
-        const hasUnread = status === 'open' && (monthOffset * ticketsPerMonth + i) % 3 === 0;
-        
-        const ticketId = `TKT-${String(10000 + monthOffset * 100 + i).slice(1)}`;
-        
-        tickets.push({
-          id: ticketId,
-          subject: subjects[subjectIndex],
-          preview: previews[subjectIndex],
-          date: new Date(ticketDate),
-          status: status,
-          statusLabel: statusLabels[status],
-          unread: hasUnread,
-          lastMessageDate: new Date(ticketDate.getTime() + (i % 7) * 24 * 60 * 60 * 1000)
-        });
-      }
+// Функция для получения CSRF токена
+function getCsrfToken() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
     }
   }
-  
-  // Сортируем по дате последнего сообщения (новые сверху)
-  return tickets.sort((a, b) => b.lastMessageDate.getTime() - a.lastMessageDate.getTime());
+  return '';
 }
 
-let ticketsData = generateTicketsData();
+// Загрузка тикетов с API
+let ticketsData = [];
+
+async function loadTickets() {
+  try {
+    const response = await fetch('/api/tickets/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка загрузки тикетов');
+    }
+
+    const data = await response.json();
+    ticketsData = data.map(ticket => ({
+      id: ticket.id,
+      subject: ticket.subject,
+      preview: ticket.subject, // Используем тему как превью
+      date: new Date(ticket.created_at),
+      status: ticket.status,
+      statusLabel: ticket.status_display,
+      unread: ticket.has_unread || false,
+      lastMessageDate: new Date(ticket.updated_at)
+    }));
+    
+    return ticketsData;
+  } catch (error) {
+    console.error('Ошибка загрузки тикетов:', error);
+    ticketsData = [];
+    return [];
+  }
+}
 
 function formatDate(date) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -209,7 +172,7 @@ function renderTickets(tickets) {
 
     group.tickets.sort((a, b) => b.lastMessageDate.getTime() - a.lastMessageDate.getTime()).forEach(ticket => {
       const card = document.createElement('a');
-      card.href = `support-ticket.html?id=${ticket.id}`;
+      card.href = `/support/support-ticket/?id=${ticket.id}`;
       card.className = 'ticket-card';
       if (ticket.unread) {
         card.classList.add('ticket-card--unread');
@@ -226,7 +189,7 @@ function renderTickets(tickets) {
         <p class="ticket-card__preview">${ticket.preview}</p>
         <div class="ticket-card__footer">
           <div class="ticket-card__info">
-            <span class="ticket-card__info-item">${ticket.id}</span>
+            <span class="ticket-card__info-item">#${ticket.id}</span>
           </div>
           ${ticket.unread ? '<span class="ticket-card__info-item">Новое сообщение</span>' : ''}
         </div>
@@ -252,7 +215,7 @@ function updateUnreadCount() {
   const badges = document.querySelectorAll('#unreadSupportCount');
   badges.forEach(badge => {
     badge.textContent = unreadCount;
-    badge.style.display = 'inline-flex';
+    badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
   });
 }
 
@@ -321,8 +284,44 @@ function setupCreateTicket() {
   if (!createBtn) return;
 
   createBtn.addEventListener('click', () => {
-    // В прототипе показываем сообщение
-    alert('Функция создания тикета будет реализована в полной версии. Для создания тикета обращайтесь в поддержку по email: support@pulsebi.ru');
+    const subject = prompt('Введите тему тикета:');
+    if (!subject) return;
+    
+    const message = prompt('Введите сообщение:');
+    if (!message) return;
+    
+    // Создание тикета через API
+    fetch('/api/tickets/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        subject: subject,
+        message: message,
+        priority: 'medium'
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Тикет успешно создан!');
+        // Перезагружаем список тикетов
+        loadTickets().then(() => {
+          const filterState = { period: 'all', search: '', dateFrom: null, dateTo: null };
+          const filtered = filterTickets(ticketsData, filterState);
+          renderTickets(filtered);
+        });
+      } else {
+        alert('Ошибка при создании тикета: ' + (data.error || 'Неизвестная ошибка'));
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка:', error);
+      alert('Ошибка при создании тикета: ' + error.message);
+    });
   });
 }
 
@@ -372,7 +371,10 @@ function setupPowerBI() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Загружаем тикеты с API
+  await loadTickets();
+  
   setupFilter();
   setupCreateTicket();
   setupPowerBI();

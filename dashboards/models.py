@@ -109,6 +109,10 @@ class PersonalData(models.Model):
     last_name = models.CharField(max_length=100, blank=True, verbose_name='Фамилия')
     company = models.CharField(max_length=200, blank=True, verbose_name='Компания')
     phone = models.CharField(max_length=20, blank=True, verbose_name='Телефон')
+    # Поля для доступа к Power BI
+    powerbi_link = models.URLField(max_length=500, blank=True, verbose_name='Ссылка Power BI')
+    powerbi_login = models.CharField(max_length=200, blank=True, verbose_name='Логин Power BI')
+    powerbi_password = models.CharField(max_length=200, blank=True, verbose_name='Пароль Power BI')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлено')
 

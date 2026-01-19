@@ -346,10 +346,9 @@ function setupPowerBI() {
 
   copyButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const field = btn.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
-      if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
+      const textToCopy = btn.getAttribute('data-copy-text') || '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
           const icon = btn.querySelector('i');
           if (icon) {
             const originalClass = icon.className;
@@ -367,20 +366,23 @@ function setupPowerBI() {
     let isPasswordVisible = false;
     toggleButton.addEventListener('click', () => {
       const field = toggleButton.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
+      const code = field ? field.querySelector('code.powerbi-password') : null;
       const icon = toggleButton.querySelector('i');
-      if (!isPasswordVisible) {
-        code.textContent = 'PowerBI2025!';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye-slash';
+      if (code) {
+        if (!isPasswordVisible) {
+          const password = code.getAttribute('data-password') || '';
+          code.textContent = password;
+          if (icon) {
+            icon.className = 'fa-regular fa-eye-slash';
+          }
+          isPasswordVisible = true;
+        } else {
+          code.textContent = '••••••••';
+          if (icon) {
+            icon.className = 'fa-regular fa-eye';
+          }
+          isPasswordVisible = false;
         }
-        isPasswordVisible = true;
-      } else {
-        code.textContent = '••••••••';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye';
-        }
-        isPasswordVisible = false;
       }
     });
   }

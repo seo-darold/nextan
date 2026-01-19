@@ -4351,6 +4351,102 @@ a {
   line-height: 1;
 }
 
+.header__user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header__user-email {
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.header__balance-wrapper {
+  position: relative;
+}
+
+.header__balance-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-tertiary);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.header__balance-btn:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(106, 90, 205, 0.1);
+}
+
+.header__balance-btn--active {
+  border-color: var(--color-primary);
+  background-color: rgba(106, 90, 205, 0.1);
+}
+
+.header__balance-icon {
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header__balance-amount {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.header__balance-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-tertiary);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.header__balance-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+}
+
+.header__balance-menu-item {
+  margin: 0;
+}
+
+.header__balance-menu-link {
+  display: block;
+  padding: 10px 16px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.header__balance-menu-link:hover {
+  background-color: rgba(106, 90, 205, 0.08);
+  color: var(--color-primary);
+}
+
 /* Страница подписки */
 .subscription-notice {
   border: 1px solid var(--color-tertiary);

@@ -1081,6 +1081,82 @@ window.addEventListener('resize', () => {
   }, 250);
 });
 
+// Инициализация меню баланса
+function setupBalanceMenu() {
+  const balanceButtons = qsa('[data-balance-menu]');
+  
+  balanceButtons.forEach((button) => {
+    const menu = button.nextElementSibling;
+    if (!menu || !menu.classList.contains('header__balance-menu')) return;
+    
+    // Инициализация состояния - меню закрыто
+    menu.setAttribute('aria-hidden', 'true');
+    menu.style.maxHeight = '0';
+    menu.style.opacity = '0';
+    menu.style.overflow = 'hidden';
+    menu.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+    
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = menu.getAttribute('aria-hidden') === 'true';
+      
+      // Закрываем все другие открытые меню
+      balanceButtons.forEach((otherButton) => {
+        if (otherButton !== button) {
+          const otherMenu = otherButton.nextElementSibling;
+          if (otherMenu && otherMenu.classList.contains('header__balance-menu')) {
+            const isOtherHidden = otherMenu.getAttribute('aria-hidden') === 'true';
+            if (!isOtherHidden) {
+              closeBalanceMenu(otherButton, otherMenu);
+            }
+          }
+        }
+      });
+      
+      if (isHidden) {
+        openBalanceMenu(button, menu);
+      } else {
+        closeBalanceMenu(button, menu);
+      }
+    });
+  });
+  
+  // Закрываем меню при клике вне его
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.header__balance-wrapper')) {
+      balanceButtons.forEach((button) => {
+        const menu = button.nextElementSibling;
+        if (menu && menu.classList.contains('header__balance-menu')) {
+          const isHidden = menu.getAttribute('aria-hidden') === 'true';
+          if (!isHidden) {
+            closeBalanceMenu(button, menu);
+          }
+        }
+      });
+    }
+  });
+}
+
+function openBalanceMenu(button, menu) {
+  menu.setAttribute('aria-hidden', 'false');
+  button.setAttribute('aria-expanded', 'true');
+  button.classList.add('header__balance-btn--active');
+  
+  // Вычисляем высоту содержимого
+  const scrollHeight = menu.scrollHeight;
+  menu.style.maxHeight = scrollHeight + 'px';
+  menu.style.opacity = '1';
+}
+
+function closeBalanceMenu(button, menu) {
+  menu.setAttribute('aria-hidden', 'true');
+  button.setAttribute('aria-expanded', 'false');
+  button.classList.remove('header__balance-btn--active');
+  
+  menu.style.maxHeight = '0';
+  menu.style.opacity = '0';
+}
+
 // Инициализация аккордеона Power BI
 function setupPowerBIAccordion() {
   qsa('[data-powerbi-accordion]').forEach((button) => {
@@ -1194,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initFAQAnimation();
   setupPowerBIAccordion();
+  setupBalanceMenu();
   
   // Обновляем счётчик непрочитанных сообщений поддержки
   updateUnreadSupportCount();

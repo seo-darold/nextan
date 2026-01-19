@@ -130,6 +130,9 @@ class PersonalDataAPIView(APIView):
                 'company': personal_data.company,
                 'phone': personal_data.phone,
                 'email': request.user.email,
+                'powerbi_link': personal_data.powerbi_link,
+                'powerbi_login': personal_data.powerbi_login,
+                'powerbi_password': personal_data.powerbi_password,
             }
         except PersonalData.DoesNotExist:
             data = {
@@ -138,6 +141,9 @@ class PersonalDataAPIView(APIView):
                 'company': '',
                 'phone': '',
                 'email': request.user.email,
+                'powerbi_link': '',
+                'powerbi_login': '',
+                'powerbi_password': '',
             }
         return Response(data)
     
@@ -150,6 +156,9 @@ class PersonalDataAPIView(APIView):
                 'last_name': request.data.get('last_name', ''),
                 'company': request.data.get('company', ''),
                 'phone': request.data.get('phone', ''),
+                'powerbi_link': request.data.get('powerbi_link', ''),
+                'powerbi_login': request.data.get('powerbi_login', ''),
+                'powerbi_password': request.data.get('powerbi_password', ''),
             }
         )
         
@@ -158,6 +167,9 @@ class PersonalDataAPIView(APIView):
             personal_data.last_name = request.data.get('last_name', personal_data.last_name)
             personal_data.company = request.data.get('company', personal_data.company)
             personal_data.phone = request.data.get('phone', personal_data.phone)
+            personal_data.powerbi_link = request.data.get('powerbi_link', personal_data.powerbi_link)
+            personal_data.powerbi_login = request.data.get('powerbi_login', personal_data.powerbi_login)
+            personal_data.powerbi_password = request.data.get('powerbi_password', personal_data.powerbi_password)
             personal_data.save()
         
         # Обновляем email пользователя

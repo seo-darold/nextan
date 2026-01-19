@@ -83,6 +83,9 @@ class PersonalDataAdmin(admin.ModelAdmin):
         ('Личные данные', {
             'fields': ('first_name', 'last_name', 'company', 'phone')
         }),
+        ('Доступ к Power BI', {
+            'fields': ('powerbi_link', 'powerbi_login', 'powerbi_password')
+        }),
         ('Даты', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)

@@ -51,6 +51,30 @@
       <div class="header__actions">
         <div class="header__user-info">
           {% if user.is_authenticated %}
+            <div class="header__balance-wrapper">
+              <button type="button" class="header__balance-btn" aria-label="Баланс" aria-expanded="false" data-balance-menu>
+                <span class="header__balance-icon" aria-hidden="true">
+                  <i class="fa-solid fa-wallet"></i>
+                </span>
+                <span class="header__balance-amount">
+                  {% if user.account_balance %}
+                    {{ user.account_balance.balance|floatformat:2 }} ₽
+                  {% else %}
+                    0.00 ₽
+                  {% endif %}
+                </span>
+              </button>
+              <div class="header__balance-menu" aria-hidden="true">
+                <ul class="header__balance-menu-list">
+                  <li class="header__balance-menu-item">
+                    <a href="#" class="header__balance-menu-link">Пополнить баланс</a>
+                  </li>
+                  <li class="header__balance-menu-item">
+                    <a href="#" class="header__balance-menu-link">История пополнений</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
             <span class="header__user-email">{{ user.email }}</span>
           {% endif %}
         </div>
@@ -101,42 +125,68 @@
         </ul>
       </nav>
 
-      <div class="powerbi-block">
-        <button class="powerbi-block__title" type="button" data-powerbi-accordion>
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Доступ к Power BI</span>
-          <i class="powerbi-block__toggle-icon fa-solid fa-chevron-down"></i>
-        </button>
-        <div class="powerbi-block__content" aria-hidden="true">
-          <div class="powerbi-block__field">
-            <span class="powerbi-block__label">Ссылка</span>
-            <div class="powerbi-block__value">
-              <code>https://app.powerbi.com/view?r=...</code>
-              <button class="powerbi-block__copy" aria-label="Копировать ссылку">
-                <i class="fa-regular fa-copy"></i>
-              </button>
+      {% if user.personal_data %}
+        {% with personal_data=user.personal_data %}
+          {% if personal_data.powerbi_link or personal_data.powerbi_login or personal_data.powerbi_password %}
+        <div class="powerbi-block">
+          <button class="powerbi-block__title" type="button" data-powerbi-accordion>
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Доступ к Power BI</span>
+            <i class="powerbi-block__toggle-icon fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="powerbi-block__content" aria-hidden="true">
+            {% if personal_data.powerbi_link %}
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Ссылка</span>
+              <div class="powerbi-block__value">
+                <code>{{ personal_data.powerbi_link }}</code>
+                <button class="powerbi-block__copy" aria-label="Копировать ссылку" data-copy-text="{{ personal_data.powerbi_link }}">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="powerbi-block__field">
-            <span class="powerbi-block__label">Логин</span>
-            <div class="powerbi-block__value">
-              <code>user@company.ru</code>
-              <button class="powerbi-block__copy" aria-label="Копировать логин">
-                <i class="fa-regular fa-copy"></i>
-              </button>
+            {% endif %}
+            {% if personal_data.powerbi_login %}
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Логин</span>
+              <div class="powerbi-block__value">
+                <code>{{ personal_data.powerbi_login }}</code>
+                <button class="powerbi-block__copy" aria-label="Копировать логин" data-copy-text="{{ personal_data.powerbi_login }}">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="powerbi-block__field">
-            <span class="powerbi-block__label">Пароль</span>
-            <div class="powerbi-block__value">
-              <code>••••••••</code>
-              <button class="powerbi-block__toggle" aria-label="Показать пароль">
-                <i class="fa-regular fa-eye"></i>
-              </button>
+            {% endif %}
+            {% if personal_data.powerbi_password %}
+            <div class="powerbi-block__field">
+              <span class="powerbi-block__label">Пароль</span>
+              <div class="powerbi-block__value">
+                <code class="powerbi-password" data-password="{{ personal_data.powerbi_password }}">••••••••</code>
+                <button class="powerbi-block__toggle" aria-label="Показать пароль">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
             </div>
+            {% endif %}
           </div>
         </div>
-      </div>
+          {% else %}
+          <div class="powerbi-block">
+            <div class="powerbi-block__notice">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>Здесь будут доступы к Power BI после оплаты подписки</span>
+            </div>
+          </div>
+          {% endif %}
+        {% endwith %}
+      {% else %}
+        <div class="powerbi-block">
+          <div class="powerbi-block__notice">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Здесь будут доступы к Power BI после оплаты подписки</span>
+          </div>
+        </div>
+      {% endif %}
     </aside>
 
     <div class="dashboard-content">

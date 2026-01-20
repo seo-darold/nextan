@@ -160,6 +160,7 @@
   </footer>
   {% endblock %}
 
+  <!-- Модальное окно входа -->
   <div class="modal" id="login-modal" role="dialog" aria-labelledby="login-modal-title" aria-hidden="true">
     <div class="modal__overlay" data-modal-close></div>
     <div class="modal__content">
@@ -168,6 +169,7 @@
       
       <form class="form form--stacked modal__form" id="loginForm" method="post" action="{% url 'core:login' %}">
         {% csrf_token %}
+        <input type="hidden" name="next" id="loginNext" value="">
         <label class="form__field">
           <span>Email</span>
           <input type="email" name="email" id="loginEmail" placeholder="name@company.ru" required>
@@ -179,6 +181,10 @@
         <div id="loginError" class="form__error" style="display: none;"></div>
         <button type="submit" class="button button--primary button--block">Войти</button>
       </form>
+
+      <div class="modal__footer">
+        <p>Нет аккаунта? <a href="#" data-switch-modal="register-modal" class="link">Зарегистрироваться</a></p>
+      </div>
 
       <div class="modal__divider">
         <span>или</span>
@@ -194,6 +200,109 @@
         <button class="button button--social button--social-sber">
           <span>Сбер ID</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно регистрации -->
+  <div class="modal" id="register-modal" role="dialog" aria-labelledby="register-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content modal__content--wide">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="register-modal-title">Регистрация</h2>
+      
+      <form class="form form--stacked modal__form" id="registerForm" method="post" action="{% url 'core:register' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" id="registerNext" value="">
+        
+        <div class="form__row">
+          <label class="form__field">
+            <span>Email <span class="form__required">*</span></span>
+            <input type="email" name="email" id="registerEmail" placeholder="name@company.ru" required>
+          </label>
+        </div>
+        
+        <div class="form__row form__row--two">
+          <label class="form__field">
+            <span>Пароль <span class="form__required">*</span></span>
+            <input type="password" name="password" id="registerPassword" placeholder="Минимум 8 символов" required>
+          </label>
+          <label class="form__field">
+            <span>Подтвердите пароль <span class="form__required">*</span></span>
+            <input type="password" name="password_confirm" id="registerPasswordConfirm" placeholder="••••••••" required>
+          </label>
+        </div>
+        
+        <div class="form__row form__row--two">
+          <label class="form__field">
+            <span>Имя</span>
+            <input type="text" name="first_name" id="registerFirstName" placeholder="Иван">
+          </label>
+          <label class="form__field">
+            <span>Фамилия</span>
+            <input type="text" name="last_name" id="registerLastName" placeholder="Иванов">
+          </label>
+        </div>
+        
+        <div class="form__row form__row--two">
+          <label class="form__field">
+            <span>Компания</span>
+            <input type="text" name="company" id="registerCompany" placeholder="ООО «Ваша компания»">
+          </label>
+          <label class="form__field">
+            <span>Телефон</span>
+            <input type="tel" name="phone" id="registerPhone" placeholder="+7 (999) 123-45-67">
+          </label>
+        </div>
+        
+        <div class="form__row">
+          <label class="form__checkbox-wrapper">
+            <input type="checkbox" name="agree_terms" id="registerAgreeTerms" class="form__checkbox" required>
+            <span class="form__checkbox-label">Я согласен с <a href="#" class="link">условиями использования</a> и <a href="#" class="link">политикой конфиденциальности</a></span>
+          </label>
+        </div>
+        
+        <div id="registerError" class="form__error" style="display: none;"></div>
+        <button type="submit" class="button button--primary button--block">Зарегистрироваться</button>
+      </form>
+
+      <div class="modal__footer">
+        <p>Уже есть аккаунт? <a href="#" data-switch-modal="login-modal" class="link">Войти</a></p>
+      </div>
+
+      <div class="modal__divider">
+        <span>или</span>
+      </div>
+
+      <div class="modal__social">
+        <button class="button button--social button--social-vk">
+          <span>VK ID</span>
+        </button>
+        <button class="button button--social button--social-google">
+          <span>Google</span>
+        </button>
+        <button class="button button--social button--social-sber">
+          <span>Сбер ID</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно выбора авторизации (для checkout) -->
+  <div class="modal" id="auth-choice-modal" role="dialog" aria-labelledby="auth-choice-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="auth-choice-modal-title">Оформление заказа</h2>
+      <p class="modal__subtitle">Для оформления заказа необходимо войти в личный кабинет или зарегистрироваться</p>
+      
+      <div class="modal__actions">
+        <button class="button button--primary button--block" data-switch-modal="login-modal" data-checkout-next="true">Войти</button>
+        <button class="button button--secondary button--block" data-switch-modal="register-modal" data-checkout-next="true">Зарегистрироваться</button>
+      </div>
+      
+      <div class="modal__info">
+        <p>После входа или регистрации выбранные подписки будут автоматически добавлены в ваш личный кабинет.</p>
       </div>
     </div>
   </div>

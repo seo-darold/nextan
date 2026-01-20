@@ -3,6 +3,11 @@ const DASHBOARDS_API_URL = window.DASHBOARDS_API_URL || '/api/dashboards/';
 const PRICE_CALCULATE_API_URL = window.PRICE_CALCULATE_API_URL || '/api/price/calculate/';
 const CART_API_URL = window.CART_API_URL || '/cart/api/';
 const CART_TOTAL_API_URL = window.CART_TOTAL_API_URL || '/cart/api/total/';
+const CHECKOUT_API_URL = window.CHECKOUT_API_URL || '/cart/api/checkout/';
+const CHECK_AUTH_URL = window.CHECK_AUTH_URL || '/api/check-auth/';
+
+// Флаг для хранения информации о том, что после авторизации нужно выполнить checkout
+let pendingCheckout = false;
 
 const state = {
   dashboards: [],
@@ -184,6 +189,126 @@ async function getCartTotal() {
     console.error('Failed to get cart total:', error);
     return { total: 0, items_count: 0 };
   }
+}
+
+// Проверка статуса авторизации
+async function checkAuth() {
+  try {
+    const data = await apiRequest(CHECK_AUTH_URL);
+    return data;
+  } catch (error) {
+    console.error('Failed to check auth:', error);
+    return { is_authenticated: false };
+  }
+}
+
+// Оформление заказа (checkout)
+async function checkout() {
+  try {
+    const response = await apiRequest(CHECKOUT_API_URL, {
+      method: 'POST',
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to checkout:', error);
+    throw error;
+  }
+}
+
+// Обработка checkout с проверкой авторизации
+async function handleCheckout() {
+  // Проверяем авторизацию
+  const authStatus = await checkAuth();
+  
+  if (authStatus.is_authenticated) {
+    // Пользователь авторизован - выполняем checkout
+    try {
+      const result = await checkout();
+      if (result.success) {
+        // Показываем уведомление об успехе
+        showNotification('Заказ успешно оформлен! Подписки добавлены в личный кабинет.', 'success');
+        
+        // Обновляем индикатор корзины
+        await updateCartIndicator();
+        
+        // Переходим в личный кабинет
+        setTimeout(() => {
+          window.location.href = result.redirect_url || '/dashboard/';
+        }, 1500);
+      } else {
+        showNotification(result.message || 'Ошибка при оформлении заказа', 'error');
+      }
+    } catch (error) {
+      showNotification('Ошибка при оформлении заказа: ' + error.message, 'error');
+    }
+  } else {
+    // Пользователь не авторизован - показываем модальное окно выбора
+    pendingCheckout = true;
+    openModal('auth-choice-modal');
+  }
+}
+
+// Показать уведомление
+function showNotification(message, type = 'info') {
+  // Удаляем предыдущие уведомления
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  // Создаём уведомление
+  const notification = document.createElement('div');
+  notification.className = `notification notification--${type}`;
+  notification.innerHTML = `
+    <div class="notification__content">
+      <span class="notification__icon">${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span>
+      <span class="notification__message">${message}</span>
+    </div>
+    <button class="notification__close" aria-label="Закрыть">×</button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Анимация появления
+  setTimeout(() => notification.classList.add('notification--visible'), 10);
+  
+  // Обработчик закрытия
+  notification.querySelector('.notification__close').addEventListener('click', () => {
+    notification.classList.remove('notification--visible');
+    setTimeout(() => notification.remove(), 300);
+  });
+  
+  // Автоматическое закрытие через 5 секунд
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.classList.remove('notification--visible');
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 5000);
+}
+
+// Открыть модальное окно
+function openModal(modalId) {
+  const modal = qs(`#${modalId}`);
+  if (modal) {
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+// Закрыть модальное окно
+function closeModal(modalId) {
+  const modal = qs(`#${modalId}`);
+  if (modal) {
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+}
+
+// Закрыть все модальные окна
+function closeAllModals() {
+  qsa('.modal').forEach(modal => {
+    modal.setAttribute('aria-hidden', 'true');
+  });
+  document.body.style.overflow = '';
 }
 
 // Обновление индикатора корзины
@@ -450,14 +575,14 @@ async function renderCartPage() {
   const list = qs('[data-cart-list]');
   if (!list) return;
   
-  const checkout = qs('[data-cart-checkout]');
-  if (checkout && !checkout.hasAttribute('data-checkout-listener')) {
-    checkout.setAttribute('data-checkout-listener', 'true');
-    checkout.addEventListener('click', (e) => {
+  const checkoutBtn = qs('[data-cart-checkout]');
+  if (checkoutBtn && !checkoutBtn.hasAttribute('data-checkout-listener')) {
+    checkoutBtn.setAttribute('data-checkout-listener', 'true');
+    checkoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       if (state.cart.length > 0) {
-        // Переход в личный кабинет (заглушка)
-        alert('Функция оформления заказа будет доступна после авторизации');
+        // Вызываем обработчик checkout
+        await handleCheckout();
       }
     });
   }
@@ -616,319 +741,134 @@ function initModal() {
   const openButtons = qsa('[data-modal-open]');
   const closeButtons = qsa('[data-modal-close]');
   
+  // Обработчики для переключения между модальными окнами
+  qsa('[data-switch-modal]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetModalId = link.dataset.switchModal;
+      const checkoutNext = link.dataset.checkoutNext === 'true';
+      
+      // Закрываем текущее модальное окно
+      const currentModal = link.closest('.modal');
+      if (currentModal) {
+        currentModal.setAttribute('aria-hidden', 'true');
+      }
+      
+      // Открываем целевое модальное окно
+      const targetModal = qs(`#${targetModalId}`);
+      if (targetModal) {
+        targetModal.setAttribute('aria-hidden', 'false');
+        
+        // Если это переход из auth-choice-modal, устанавливаем флаг pendingCheckout
+        if (checkoutNext) {
+          pendingCheckout = true;
+          // Устанавливаем next URL на текущую страницу (для возврата после авторизации)
+          const nextInput = targetModal.querySelector('input[name="next"]');
+          if (nextInput) {
+            nextInput.value = window.location.pathname;
+          }
+        }
+      }
+    });
+  });
+  
   // Обработка формы входа - блокируем стандартное поведение
   // Ищем форму по классам: form form--stacked modal__form внутри модального окна login-modal
   const loginModal = qs('#login-modal');
   const loginForm = loginModal ? qs('form.form.form--stacked.modal__form', loginModal) : null;
   
   if (loginForm) {
-    console.log('Найдена форма входа по классам:', loginForm);
-    
     // Обработчик на кнопку submit - программно вызываем submit формы
     const submitButton = qs('button[type="submit"]', loginForm);
     if (submitButton) {
-      console.log('Найдена кнопка "Войти":', submitButton);
       submitButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Кнопка "Войти" нажата, вызываем submit формы');
         // Программно вызываем submit формы, чтобы сработал обработчик на document
         loginForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       });
     }
-  } else {
-    console.warn('Форма входа не найдена. Искали: form.form.form--stacked.modal__form внутри #login-modal');
   }
   
-  // Обработка формы входа через делегирование событий на уровне document
-  // Ищем форму с классами: form form--stacked modal__form и id="loginForm"
-  if (!document.loginFormHandlerAdded) {
-    document.loginFormHandlerAdded = true;
+  // Обработка формы регистрации
+  const registerModal = qs('#register-modal');
+  const registerForm = registerModal ? qs('#registerForm', registerModal) : null;
+  
+  if (registerForm) {
+    const submitButton = qs('button[type="submit"]', registerForm);
+    if (submitButton) {
+      submitButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        registerForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      });
+    }
+  }
+  
+  // Глобальный обработчик submit для форм авторизации и регистрации
+  if (!document.authFormHandlerAdded) {
+    document.authFormHandlerAdded = true;
     
-    console.log('Добавлен глобальный обработчик submit для формы входа');
-    
-    // Используем capture phase (true), чтобы перехватить событие раньше всех
-    // ВАЖНО: обрабатываем только события типа 'submit', не 'click'
     document.addEventListener('submit', async (e) => {
-      console.log('Событие submit перехвачено на document:', e.target, e.type);
+      if (e.type !== 'submit') return;
       
-      // Проверяем, что это действительно событие submit формы
-      if (e.type !== 'submit') {
-        console.log('Это не событие submit, пропускаем');
-        return; // Это не событие submit, пропускаем
-      }
-      
-      // Проверяем, что это форма входа по классам: form form--stacked modal__form
-      let loginForm = null;
+      let isLoginForm = false;
+      let isRegisterForm = false;
+      let targetForm = null;
       
       if (e.target.tagName === 'FORM') {
-        console.log('Событие от формы:', e.target, 'классы:', e.target.className);
-        // Проверяем по классам
-        if (e.target.classList.contains('form') && 
-            e.target.classList.contains('form--stacked') && 
-            e.target.classList.contains('modal__form')) {
-          // Проверяем, что форма находится внутри модального окна login-modal
-          const modal = e.target.closest('#login-modal');
-          if (modal) {
-            loginForm = e.target;
-            console.log('Найдена форма входа по target (классы):', loginForm);
-          } else {
-            console.log('Форма не находится внутри #login-modal');
-          }
-        } else {
-          console.log('Форма не имеет нужных классов');
+        // Проверяем форму входа
+        if (e.target.id === 'loginForm' || (e.target.closest('#login-modal') && 
+            e.target.classList.contains('form') && 
+            e.target.classList.contains('modal__form'))) {
+          isLoginForm = true;
+          targetForm = e.target;
         }
-      } else {
-        console.log('Событие не от формы, target:', e.target.tagName);
-        // Если событие от кнопки, ищем форму через closest
-        loginForm = e.target.closest('form.form.form--stacked.modal__form');
-        if (loginForm) {
-          // Проверяем, что форма находится внутри модального окна login-modal
-          const modal = loginForm.closest('#login-modal');
-          if (modal) {
-            console.log('Найдена форма входа через closest (классы):', loginForm);
-          } else {
-            console.log('Форма через closest не находится внутри #login-modal');
-            loginForm = null;
-          }
-        } else {
-          console.log('Форма не найдена через closest');
+        // Проверяем форму регистрации
+        else if (e.target.id === 'registerForm' || e.target.closest('#register-modal')) {
+          isRegisterForm = true;
+          targetForm = e.target;
         }
       }
       
-      if (!loginForm) {
-        console.log('Это не форма входа, позволяем работать стандартным образом');
-        return; // Это не форма входа, позволяем работать стандартным образом
-      }
+      if (!isLoginForm && !isRegisterForm) return;
       
-      // ПРЕВЕНТИМ ОТПРАВКУ ФОРМЫ
+      // Превентим отправку формы
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       
-      console.log('Форма входа: отправка предотвращена!', loginForm);
-      
-      // Ищем поля формы - могут быть без ID, ищем по типу и позиции
-      const emailInput = qs('input[type="text"], input[type="email"]', loginForm);
-      const passwordInput = qs('input[type="password"]', loginForm);
-      const errorDiv = qs('#loginError', loginForm) || qs('.form__error', loginForm);
-      
-      // Создаем div для ошибок, если его нет
-      let errorContainer = errorDiv;
-      if (!errorContainer) {
-        errorContainer = document.createElement('div');
-        errorContainer.className = 'form__error';
-        errorContainer.id = 'loginError';
-        errorContainer.style.display = 'none';
-        // Вставляем перед кнопкой submit
-        const submitButton = qs('button[type="submit"]', loginForm);
-        if (submitButton) {
-          loginForm.insertBefore(errorContainer, submitButton);
-        } else {
-          loginForm.appendChild(errorContainer);
-        }
-      }
-      
-      // Скрываем предыдущие ошибки
+      const errorContainer = targetForm.querySelector('.form__error') || createErrorContainer(targetForm);
       errorContainer.style.display = 'none';
       errorContainer.textContent = '';
       
-      const email = emailInput?.value?.trim();
-      const password = passwordInput?.value;
-      
-      // Базовая валидация на клиенте
-      if (!email || !password) {
-        errorContainer.textContent = 'Заполните все поля';
-        errorContainer.style.display = 'block';
-        return;
-      }
-      
-      // Получаем CSRF токен из формы или cookie
-      const csrfInput = qs('input[name="csrfmiddlewaretoken"]', loginForm);
+      // Получаем CSRF токен
+      const csrfInput = targetForm.querySelector('input[name="csrfmiddlewaretoken"]');
       let csrfToken = csrfInput?.value || getCsrfToken();
       
-      // Если CSRF токена нет, получаем его через AJAX
       if (!csrfToken) {
-        try {
-          const csrfResponse = await fetch('/login/', { method: 'GET', credentials: 'same-origin' });
-          const csrfHtml = await csrfResponse.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(csrfHtml, 'text/html');
-          const csrfInputFromPage = doc.querySelector('input[name="csrfmiddlewaretoken"]');
-          if (csrfInputFromPage) {
-            csrfToken = csrfInputFromPage.value;
-            // Добавляем CSRF токен в форму, если его там нет
-            if (!csrfInput) {
-              const hiddenInput = document.createElement('input');
-              hiddenInput.type = 'hidden';
-              hiddenInput.name = 'csrfmiddlewaretoken';
-              hiddenInput.value = csrfToken;
-              loginForm.appendChild(hiddenInput);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to get CSRF token:', err);
-        }
-      }
-      
-      if (!csrfToken) {
-        console.error('CSRF token not found');
         errorContainer.textContent = 'Ошибка безопасности. Перезагрузите страницу.';
         errorContainer.style.display = 'block';
         return;
       }
       
-      // Определяем URL для отправки
-      // Явно указываем /login/, так как в реальном HTML формы может не быть action или он может быть неправильным
-      let loginUrl = '/login/';
-      
-      // Если форма имеет action и это валидный URL, используем его
-      if (loginForm.action && 
-          loginForm.action.trim() !== '' && 
-          loginForm.action !== window.location.href &&
-          !loginForm.action.endsWith('/?') &&
-          loginForm.action.includes('/login')) {
-        loginUrl = loginForm.action;
+      if (isLoginForm) {
+        await handleLoginFormSubmit(targetForm, errorContainer, csrfToken);
+      } else if (isRegisterForm) {
+        await handleRegisterFormSubmit(targetForm, errorContainer, csrfToken);
       }
-      
-      console.log('URL формы (action):', loginForm.action);
-      console.log('Используемый URL для авторизации:', loginUrl);
-      
-      // Отправляем AJAX запрос
-      try {
-        const formData = new FormData();
-        formData.append('email', email);
-        formData.append('password', password);
-        formData.append('csrfmiddlewaretoken', csrfToken);
-        
-        // Убеждаемся, что URL абсолютный или относительный правильно
-        let finalUrl = loginUrl;
-        if (!loginUrl.startsWith('http://') && !loginUrl.startsWith('https://') && !loginUrl.startsWith('/')) {
-          finalUrl = '/' + loginUrl;
-        }
-        
-        console.log('Отправка запроса на авторизацию:', finalUrl, 'email:', email);
-        console.log('FormData:', Array.from(formData.entries()));
-        
-        const response = await fetch(finalUrl, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest', // Помечаем как AJAX запрос
-          },
-          credentials: 'same-origin', // Важно для сохранения cookies и сессии
-        });
-        
-        console.log('Статус ответа:', response.status);
-        console.log('URL ответа:', response.url);
-        
-        // Если 404, значит URL не найден
-        if (response.status === 404) {
-          console.error('Ошибка 404: URL /login/ не найден на сервере');
-          errorContainer.textContent = 'Ошибка: страница авторизации не найдена. Обратитесь к администратору.';
-          errorContainer.style.display = 'block';
-          return;
-        }
-        
-        if (response.ok) {
-          const data = await response.json().catch(() => null);
-          
-          console.log('Данные ответа:', data);
-          
-          // Закрываем модальное окно
-          const modal = loginForm.closest('#login-modal');
-          if (modal) {
-            modal.setAttribute('aria-hidden', 'true');
-            document.body.style.overflow = '';
-          }
-          
-          // Если это JSON ответ (AJAX), обрабатываем редирект
-          if (data && data.redirect_url) {
-            console.log('Редирект на:', data.redirect_url);
-            window.location.href = data.redirect_url;
-          } else if (data && data.success) {
-            // Если успех, но нет redirect_url, переходим на dashboard
-            console.log('Авторизация успешна, редирект на /dashboard/');
-            window.location.href = '/dashboard/';
-          } else {
-            // Если это HTML редирект, проверяем заголовок Location
-            const redirectUrl = response.headers.get('Location');
-            if (redirectUrl) {
-              console.log('Редирект через заголовок Location:', redirectUrl);
-              window.location.href = redirectUrl;
-            } else {
-              // Если нет явного редиректа, пробуем перейти на dashboard
-              console.log('Редирект на /dashboard/ (по умолчанию)');
-              window.location.href = '/dashboard/';
-            }
-          }
-        } else {
-          // Обработка ошибок
-          try {
-            const data = await response.json();
-            console.log('Ошибка авторизации:', data);
-            
-            if (data && data.errors) {
-              // Обрабатываем ошибки валидации
-              let errorMessages = [];
-              
-              // Ошибки могут быть в разных форматах
-              if (Array.isArray(data.errors)) {
-                errorMessages = data.errors;
-              } else if (typeof data.errors === 'object') {
-                // Если это объект с полями формы
-                Object.values(data.errors).forEach(fieldErrors => {
-                  if (Array.isArray(fieldErrors)) {
-                    errorMessages.push(...fieldErrors);
-                  } else if (typeof fieldErrors === 'string') {
-                    errorMessages.push(fieldErrors);
-                  }
-                });
-              }
-              
-              const errorText = errorMessages.length > 0 
-                ? errorMessages.join(', ') 
-                : 'Ошибка входа. Проверьте данные.';
-              
-              errorContainer.textContent = errorText;
-              errorContainer.style.display = 'block';
-            } else {
-              // Если нет структурированных ошибок
-              errorContainer.textContent = 'Ошибка входа. Проверьте данные.';
-              errorContainer.style.display = 'block';
-            }
-          } catch (parseError) {
-            // Если не удалось распарсить JSON (например, HTML ответ)
-            console.error('Не удалось распарсить ответ с ошибкой:', parseError);
-            errorContainer.textContent = 'Ошибка входа. Проверьте email и пароль.';
-            errorContainer.style.display = 'block';
-          }
-        }
-      } catch (error) {
-        console.error('Ошибка при отправке запроса:', error);
-        errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
-        errorContainer.style.display = 'block';
-      }
-    }, true); // Используем capture phase для перехвата события раньше всех
+    }, true);
   }
 
-  console.log('Найдено кнопок для открытия модальных окон:', openButtons.length);
-  
   openButtons.forEach((button) => {
-    console.log('Добавлен обработчик для кнопки:', button, 'data-modal-open:', button.dataset.modalOpen);
     button.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       const modalId = button.dataset.modalOpen;
-      console.log('Клик по кнопке открытия модального окна:', modalId);
       const modal = qs(`#${modalId}`);
       if (modal) {
-        console.log('Модальное окно найдено, открываем:', modal);
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-      } else {
-        console.warn('Модальное окно не найдено:', modalId);
       }
     });
   });
@@ -940,6 +880,8 @@ function initModal() {
       if (modal) {
         modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        // Сбрасываем pendingCheckout при закрытии модального окна
+        pendingCheckout = false;
       }
     });
   });
@@ -951,6 +893,7 @@ function initModal() {
         if (modal) {
           modal.setAttribute('aria-hidden', 'true');
           document.body.style.overflow = '';
+          pendingCheckout = false;
         }
       }
     });
@@ -962,6 +905,7 @@ function initModal() {
       if (openModal) {
         openModal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        pendingCheckout = false;
       }
     }
   });
@@ -972,6 +916,238 @@ function initModal() {
       alert('Функция социальной авторизации будет доступна после настройки');
     });
   });
+}
+
+// Создать контейнер для ошибок
+function createErrorContainer(form) {
+  const errorContainer = document.createElement('div');
+  errorContainer.className = 'form__error';
+  errorContainer.style.display = 'none';
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    form.insertBefore(errorContainer, submitButton);
+  } else {
+    form.appendChild(errorContainer);
+  }
+  return errorContainer;
+}
+
+// Обработка отправки формы входа
+async function handleLoginFormSubmit(form, errorContainer, csrfToken) {
+  const emailInput = form.querySelector('input[name="email"]');
+  const passwordInput = form.querySelector('input[name="password"]');
+  const nextInput = form.querySelector('input[name="next"]');
+  
+  const email = emailInput?.value?.trim();
+  const password = passwordInput?.value;
+  
+  if (!email || !password) {
+    errorContainer.textContent = 'Заполните все поля';
+    errorContainer.style.display = 'block';
+    return;
+  }
+  
+  try {
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    if (nextInput?.value) {
+      formData.append('next', nextInput.value);
+    }
+    
+    const response = await fetch('/login/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      credentials: 'same-origin',
+    });
+    
+    if (response.ok) {
+      const data = await response.json().catch(() => null);
+      
+      // Закрываем модальное окно
+      closeAllModals();
+      
+      // Проверяем, нужно ли выполнить checkout после авторизации
+      if (pendingCheckout) {
+        pendingCheckout = false;
+        showNotification('Вход выполнен. Оформляем заказ...', 'success');
+        
+        // Выполняем checkout
+        setTimeout(async () => {
+          try {
+            const result = await checkout();
+            if (result.success) {
+              showNotification('Заказ успешно оформлен! Подписки добавлены в личный кабинет.', 'success');
+              await updateCartIndicator();
+              setTimeout(() => {
+                window.location.href = result.redirect_url || '/dashboard/';
+              }, 1500);
+            } else {
+              showNotification(result.message || 'Ошибка при оформлении заказа', 'error');
+            }
+          } catch (error) {
+            showNotification('Ошибка при оформлении заказа: ' + error.message, 'error');
+          }
+        }, 500);
+      } else {
+        // Обычный вход
+        if (data && data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          window.location.href = '/dashboard/';
+        }
+      }
+    } else {
+      const data = await response.json().catch(() => null);
+      handleFormErrors(data, errorContainer, 'Ошибка входа. Проверьте email и пароль.');
+    }
+  } catch (error) {
+    console.error('Ошибка при отправке запроса:', error);
+    errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
+    errorContainer.style.display = 'block';
+  }
+}
+
+// Обработка отправки формы регистрации
+async function handleRegisterFormSubmit(form, errorContainer, csrfToken) {
+  const emailInput = form.querySelector('input[name="email"]');
+  const passwordInput = form.querySelector('input[name="password"]');
+  const passwordConfirmInput = form.querySelector('input[name="password_confirm"]');
+  const firstNameInput = form.querySelector('input[name="first_name"]');
+  const lastNameInput = form.querySelector('input[name="last_name"]');
+  const companyInput = form.querySelector('input[name="company"]');
+  const phoneInput = form.querySelector('input[name="phone"]');
+  const agreeTermsInput = form.querySelector('input[name="agree_terms"]');
+  const nextInput = form.querySelector('input[name="next"]');
+  
+  const email = emailInput?.value?.trim();
+  const password = passwordInput?.value;
+  const passwordConfirm = passwordConfirmInput?.value;
+  
+  // Базовая валидация
+  if (!email || !password || !passwordConfirm) {
+    errorContainer.textContent = 'Заполните обязательные поля';
+    errorContainer.style.display = 'block';
+    return;
+  }
+  
+  if (password !== passwordConfirm) {
+    errorContainer.textContent = 'Пароли не совпадают';
+    errorContainer.style.display = 'block';
+    return;
+  }
+  
+  if (!agreeTermsInput?.checked) {
+    errorContainer.textContent = 'Необходимо согласиться с условиями использования';
+    errorContainer.style.display = 'block';
+    return;
+  }
+  
+  try {
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+    formData.append('password_confirm', passwordConfirm);
+    formData.append('first_name', firstNameInput?.value || '');
+    formData.append('last_name', lastNameInput?.value || '');
+    formData.append('company', companyInput?.value || '');
+    formData.append('phone', phoneInput?.value || '');
+    formData.append('agree_terms', 'on');
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    if (nextInput?.value) {
+      formData.append('next', nextInput.value);
+    }
+    
+    const response = await fetch('/register/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      credentials: 'same-origin',
+    });
+    
+    if (response.ok) {
+      const data = await response.json().catch(() => null);
+      
+      // Закрываем модальное окно
+      closeAllModals();
+      
+      // Проверяем, нужно ли выполнить checkout после регистрации
+      if (pendingCheckout) {
+        pendingCheckout = false;
+        showNotification('Регистрация успешна! Оформляем заказ...', 'success');
+        
+        // Выполняем checkout
+        setTimeout(async () => {
+          try {
+            const result = await checkout();
+            if (result.success) {
+              showNotification('Заказ успешно оформлен! Подписки добавлены в личный кабинет.', 'success');
+              await updateCartIndicator();
+              setTimeout(() => {
+                window.location.href = result.redirect_url || '/dashboard/';
+              }, 1500);
+            } else {
+              showNotification(result.message || 'Ошибка при оформлении заказа', 'error');
+            }
+          } catch (error) {
+            showNotification('Ошибка при оформлении заказа: ' + error.message, 'error');
+          }
+        }, 500);
+      } else {
+        // Обычная регистрация
+        showNotification('Регистрация успешна!', 'success');
+        if (data && data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          window.location.href = '/dashboard/';
+        }
+      }
+    } else {
+      const data = await response.json().catch(() => null);
+      handleFormErrors(data, errorContainer, 'Ошибка регистрации. Проверьте введённые данные.');
+    }
+  } catch (error) {
+    console.error('Ошибка при отправке запроса:', error);
+    errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
+    errorContainer.style.display = 'block';
+  }
+}
+
+// Обработка ошибок формы
+function handleFormErrors(data, errorContainer, defaultMessage) {
+  if (data && data.errors) {
+    let errorMessages = [];
+    
+    if (Array.isArray(data.errors)) {
+      errorMessages = data.errors;
+    } else if (typeof data.errors === 'object') {
+      Object.values(data.errors).forEach(fieldErrors => {
+        if (Array.isArray(fieldErrors)) {
+          errorMessages.push(...fieldErrors);
+        } else if (typeof fieldErrors === 'string') {
+          errorMessages.push(fieldErrors);
+        }
+      });
+    }
+    
+    const errorText = errorMessages.length > 0 
+      ? errorMessages.join(', ') 
+      : defaultMessage;
+    
+    errorContainer.textContent = errorText;
+    errorContainer.style.display = 'block';
+  } else {
+    errorContainer.textContent = defaultMessage;
+    errorContainer.style.display = 'block';
+  }
 }
 
 // Функция для обновления счётчика непрочитанных сообщений поддержки

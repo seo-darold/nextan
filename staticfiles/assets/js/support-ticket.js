@@ -10,6 +10,18 @@ function getCsrfToken() {
   return '';
 }
 
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
 // Получение ID тикета из URL
 function getTicketIdFromURL() {
   const params = new URLSearchParams(window.location.search);
@@ -199,7 +211,10 @@ function renderMessages(messages, searchTerm = '') {
   if (!container) return;
 
   if (!messages || messages.length === 0) {
-    container.innerHTML = '<p class="support-empty">Сообщения не найдены</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="support-empty">Сообщения не найдены</p>'
+      : '<p class="support-empty">В этом тикете пока нет сообщений.</p>';
+    container.innerHTML = emptyMessage;
     return;
   }
 
@@ -372,10 +387,9 @@ function setupPowerBI() {
 
   copyButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const field = btn.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
-      if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
+      const textToCopy = btn.getAttribute('data-copy-text') || '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
           const originalText = btn.textContent;
           btn.textContent = '✓';
           setTimeout(() => {
@@ -389,13 +403,16 @@ function setupPowerBI() {
   if (toggleButton) {
     toggleButton.addEventListener('click', () => {
       const field = toggleButton.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
-      if (code.textContent === '••••••••') {
-        code.textContent = 'PowerBI2025!';
-        toggleButton.textContent = '🙈';
-      } else {
-        code.textContent = '••••••••';
-        toggleButton.textContent = '👁';
+      const code = field ? field.querySelector('code.powerbi-password') : null;
+      if (code) {
+        if (code.textContent === '••••••••') {
+          const password = code.getAttribute('data-password') || '';
+          code.textContent = password;
+          toggleButton.textContent = '🙈';
+        } else {
+          code.textContent = '••••••••';
+          toggleButton.textContent = '👁';
+        }
       }
     });
   }

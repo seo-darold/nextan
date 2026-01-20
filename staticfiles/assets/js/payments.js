@@ -10,6 +10,18 @@ function getCsrfToken() {
   return '';
 }
 
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
 // Загрузка платежей с API
 let paymentsData = [];
 
@@ -158,7 +170,10 @@ function renderPayments(payments) {
   console.log('Container found:', container);
 
   if (!payments || payments.length === 0) {
-    container.innerHTML = '<p class="payments-empty">Платежи не найдены</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="payments-empty">Платежи не найдены</p>'
+      : '<p class="payments-empty">У вас ещё нет платежей.</p>';
+    container.innerHTML = emptyMessage;
     console.log('No payments to render');
     return;
   }
@@ -330,17 +345,16 @@ function setupPowerBI() {
 
   copyButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const field = btn.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
-      if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
+      const textToCopy = btn.getAttribute('data-copy-text') || '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
           const icon = btn.querySelector('i');
           if (icon) {
             const originalClass = icon.className;
             icon.className = 'fa-solid fa-check';
-          setTimeout(() => {
+            setTimeout(() => {
               icon.className = originalClass;
-          }, 1000);
+            }, 1000);
           }
         });
       }
@@ -351,20 +365,23 @@ function setupPowerBI() {
     let isPasswordVisible = false;
     toggleButton.addEventListener('click', () => {
       const field = toggleButton.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
+      const code = field ? field.querySelector('code.powerbi-password') : null;
       const icon = toggleButton.querySelector('i');
-      if (!isPasswordVisible) {
-        code.textContent = 'PowerBI2025!';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye-slash';
+      if (code) {
+        if (!isPasswordVisible) {
+          const password = code.getAttribute('data-password') || '';
+          code.textContent = password;
+          if (icon) {
+            icon.className = 'fa-regular fa-eye-slash';
+          }
+          isPasswordVisible = true;
+        } else {
+          code.textContent = '••••••••';
+          if (icon) {
+            icon.className = 'fa-regular fa-eye';
+          }
+          isPasswordVisible = false;
         }
-        isPasswordVisible = true;
-      } else {
-        code.textContent = '••••••••';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye';
-        }
-        isPasswordVisible = false;
       }
     });
   }

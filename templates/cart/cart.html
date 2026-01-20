@@ -86,6 +86,9 @@
 <script>
   window.CART_API_URL = '{% url "cart:api_cart" %}';
   window.CART_TOTAL_API_URL = '{% url "cart:api_cart_total" %}';
+  window.CHECKOUT_API_URL = '{% url "cart:api_checkout" %}';
+  window.CHECK_AUTH_URL = '{% url "core:check_auth" %}';
+  window.IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};
 </script>
 {% endblock %}
 

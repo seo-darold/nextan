@@ -11,5 +11,6 @@ urlpatterns = [
     path('api/clear/', api_views.CartClearAPIView.as_view(), name='api_cart_clear'),
     path('api/total/', api_views.CartTotalAPIView.as_view(), name='api_cart_total'),
     path('api/item/<int:item_id>/', api_views.CartAPIView.as_view(), name='api_cart_item'),
+    path('api/checkout/', api_views.CheckoutAPIView.as_view(), name='api_checkout'),
 ]
 

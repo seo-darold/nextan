@@ -10,6 +10,18 @@ function getCsrfToken() {
   return '';
 }
 
+// Получение email пользователя
+function getUserEmail() {
+  const emailElement = document.getElementById('userEmail');
+  return emailElement ? emailElement.getAttribute('data-user-email') : null;
+}
+
+// Проверка, является ли пользователь админом
+function isAdminUser() {
+  const email = getUserEmail();
+  return email === 'admin@example.com';
+}
+
 // Загрузка кабинетов с API
 let cabinetsData = [];
 
@@ -65,7 +77,10 @@ async function renderCabinets() {
   grid.innerHTML = '';
 
   if (cabinetsData.length === 0) {
-    grid.innerHTML = '<p class="cabinet-empty">Кабинеты не найдены. Подключите первый кабинет.</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="cabinet-empty">Кабинеты не найдены. Подключите первый кабинет.</p>'
+      : '<p class="cabinet-empty">У вас ещё нет подключенных кабинетов.</p><p>Вы можете подключить кабинет, нажав кнопку "Подключить новый кабинет" выше.</p>';
+    grid.innerHTML = emptyMessage;
     return;
   }
 
@@ -155,7 +170,10 @@ function renderCabinetSubscriptions(cabinet) {
   grid.innerHTML = '';
   
   if (subscriptions.length === 0) {
-    grid.innerHTML = '<p class="subscriptions-empty">К этому кабинету не подключено подписок</p>';
+    const emptyMessage = isAdminUser()
+      ? '<p class="subscriptions-empty">К этому кабинету не подключено подписок</p>'
+      : '<p class="subscriptions-empty">К этому кабинету не подключено подписок.</p><p>Вы можете оформить подписку, перейдя на <a href="/dashboard/">страницу подписок</a>.</p>';
+    grid.innerHTML = emptyMessage;
     return;
   }
   
@@ -481,10 +499,9 @@ function setupPowerBI() {
 
   copyButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const field = btn.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
-      if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
+      const textToCopy = btn.getAttribute('data-copy-text') || '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
           const icon = btn.querySelector('i');
           if (icon) {
             const originalClass = icon.className;
@@ -502,20 +519,23 @@ function setupPowerBI() {
     let isPasswordVisible = false;
     toggleButton.addEventListener('click', () => {
       const field = toggleButton.closest('.powerbi-block__field');
-      const code = field.querySelector('code');
+      const code = field ? field.querySelector('code.powerbi-password') : null;
       const icon = toggleButton.querySelector('i');
-      if (!isPasswordVisible) {
-        code.textContent = 'PowerBI2025!';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye-slash';
+      if (code) {
+        if (!isPasswordVisible) {
+          const password = code.getAttribute('data-password') || '';
+          code.textContent = password;
+          if (icon) {
+            icon.className = 'fa-regular fa-eye-slash';
+          }
+          isPasswordVisible = true;
+        } else {
+          code.textContent = '••••••••';
+          if (icon) {
+            icon.className = 'fa-regular fa-eye';
+          }
+          isPasswordVisible = false;
         }
-        isPasswordVisible = true;
-      } else {
-        code.textContent = '••••••••';
-        if (icon) {
-          icon.className = 'fa-regular fa-eye';
-        }
-        isPasswordVisible = false;
       }
     });
   }

@@ -2,9 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from decimal import Decimal
+from datetime import timedelta
 from .models import Cart, CartItem
-from dashboards.models import Dashboard
+from dashboards.models import Dashboard, Cabinet, Subscription, Payment
 from dashboards.utils import calculate_price_with_discounts
 
 
@@ -249,4 +251,148 @@ class CartTotalAPIView(APIView):
             'total': 0.0,
             'items_count': 0,
         })
+
+
+class CheckoutAPIView(APIView):
+    """API для оформления заказа"""
+    
+    def get_cart(self, request):
+        """Получает корзину"""
+        if request.user.is_authenticated:
+            try:
+                return Cart.objects.get(user=request.user)
+            except Cart.DoesNotExist:
+                return None
+        else:
+            session_key = request.session.session_key
+            if session_key:
+                try:
+                    return Cart.objects.get(session_key=session_key, user=None)
+                except Cart.DoesNotExist:
+                    return None
+        return None
+    
+    def get(self, request):
+        """Проверка статуса авторизации и корзины перед оформлением"""
+        cart = self.get_cart(request)
+        
+        if not cart or not cart.items.exists():
+            return Response({
+                'can_checkout': False,
+                'reason': 'empty_cart',
+                'message': 'Корзина пуста',
+            })
+        
+        return Response({
+            'can_checkout': True,
+            'is_authenticated': request.user.is_authenticated,
+            'cart_total': float(cart.get_total()),
+            'items_count': cart.get_items_count(),
+        })
+    
+    def post(self, request):
+        """Оформление заказа - создание подписок из корзины"""
+        # Проверяем авторизацию
+        if not request.user.is_authenticated:
+            return Response({
+                'success': False,
+                'reason': 'not_authenticated',
+                'message': 'Для оформления заказа необходимо авторизоваться',
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Получаем корзину
+        cart = self.get_cart(request)
+        if not cart or not cart.items.exists():
+            return Response({
+                'success': False,
+                'reason': 'empty_cart',
+                'message': 'Корзина пуста',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = request.user
+        created_subscriptions = []
+        total_amount = Decimal('0.00')
+        
+        try:
+            # Обрабатываем каждый элемент корзины
+            for cart_item in cart.items.select_related('dashboard').all():
+                # Для каждого маркетплейса создаём кабинеты и подписки
+                for marketplace in cart_item.marketplaces:
+                    # Определяем код маркетплейса
+                    marketplace_code = 'WB' if marketplace.lower() in ['wildberries', 'wb'] else 'OZON'
+                    
+                    # Создаём кабинеты для каждого из указанного количества
+                    for cab_num in range(cart_item.cabinets_count):
+                        # Создаём кабинет (пользователь позже заполнит данные)
+                        cabinet = Cabinet.objects.create(
+                            user=user,
+                            name=f'{cart_item.dashboard.title} - {marketplace} #{cab_num + 1}',
+                            shop_name=f'Магазин {marketplace} #{cab_num + 1}',
+                            marketplace=marketplace_code,
+                            api_key='',  # Пользователь заполнит позже
+                            is_active=True,
+                        )
+                        
+                        # Рассчитываем даты подписки
+                        start_date = timezone.now()
+                        end_date = start_date + timedelta(days=30 * cart_item.months)
+                        
+                        # Цена за один кабинет = общая цена / количество кабинетов
+                        price_per_cabinet = cart_item.price_per_month / cart_item.cabinets_count
+                        
+                        # Создаём подписку
+                        subscription = Subscription.objects.create(
+                            cabinet=cabinet,
+                            dashboard=cart_item.dashboard,
+                            status='active',
+                            price_per_month=price_per_cabinet,
+                            months=cart_item.months,
+                            start_date=start_date,
+                            end_date=end_date,
+                            auto_renewal=False,
+                        )
+                        
+                        created_subscriptions.append({
+                            'id': subscription.id,
+                            'cabinet_name': cabinet.name,
+                            'dashboard': cart_item.dashboard.title,
+                            'marketplace': marketplace,
+                            'months': cart_item.months,
+                            'price_per_month': float(price_per_cabinet),
+                            'end_date': end_date.isoformat(),
+                        })
+                
+                # Считаем общую сумму
+                total_amount += cart_item.get_total_price()
+            
+            # Создаём запись о платеже (статус pending - ожидает оплаты)
+            payment = Payment.objects.create(
+                user=user,
+                payment_type='subscription',
+                amount=total_amount,
+                status='pending',
+                description=f'Оплата подписок: {len(created_subscriptions)} шт.',
+            )
+            
+            # Очищаем корзину после успешного оформления
+            cart.items.all().delete()
+            
+            return Response({
+                'success': True,
+                'message': 'Заказ успешно оформлен',
+                'subscriptions': created_subscriptions,
+                'payment': {
+                    'id': payment.id,
+                    'amount': float(total_amount),
+                    'status': payment.status,
+                },
+                'redirect_url': '/dashboard/',
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'reason': 'error',
+                'message': f'Ошибка при оформлении заказа: {str(e)}',
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

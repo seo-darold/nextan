@@ -1,4 +1,4 @@
-﻿{% extends 'lk-base.html' %}
+{% extends 'lk-base.html' %}
 {% load static %}
 
 {% block title %}Поддержка — НекстАналитика{% endblock %}
@@ -58,6 +58,38 @@
   </section>
 {% endblock %}
 
+{% block modals %}
+  <!-- Модальное окно создания тикета -->
+  <div class="modal" id="create-ticket-modal" role="dialog" aria-labelledby="create-ticket-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content modal__content--wide">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="create-ticket-modal-title">Создать тикет</h2>
+      <p class="modal__subtitle">Опишите вашу проблему или вопрос, и мы постараемся помочь как можно скорее</p>
+      
+      <form class="form form--stacked modal__form" id="createTicketForm">
+        <label class="form__field">
+          <span>Тема обращения <span class="form__required">*</span></span>
+          <input type="text" name="subject" id="ticketSubject" placeholder="Кратко опишите проблему" required>
+        </label>
+        
+        <label class="form__field">
+          <span>Сообщение <span class="form__required">*</span></span>
+          <textarea name="message" id="ticketMessage" class="form__field" rows="5" placeholder="Подробно опишите вашу проблему или вопрос..." required></textarea>
+        </label>
+        
+        <div id="createTicketError" class="form__error" style="display: none;"></div>
+        
+        <div class="modal__actions modal__actions--row">
+          <button type="button" class="button button--secondary" data-modal-close>Отмена</button>
+          <button type="submit" class="button button--primary">Создать тикет</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
 {% block extra_js %}
+  <script src="{% static 'assets/js/loading.js' %}"></script>
   <script src="{% static 'assets/js/support.js' %}" defer></script>
 {% endblock %}

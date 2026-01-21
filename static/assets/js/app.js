@@ -817,10 +817,13 @@ function initModal() {
       let targetForm = null;
       
       if (e.target.tagName === 'FORM') {
+        // Исключаем форму восстановления пароля
+        if (e.target.id === 'forgotPasswordForm') {
+          return; // Пропускаем - у неё свой обработчик
+        }
+        
         // Проверяем форму входа
-        if (e.target.id === 'loginForm' || (e.target.closest('#login-modal') && 
-            e.target.classList.contains('form') && 
-            e.target.classList.contains('modal__form'))) {
+        if (e.target.id === 'loginForm') {
           isLoginForm = true;
           targetForm = e.target;
         }
@@ -916,6 +919,182 @@ function initModal() {
       alert('Функция социальной авторизации будет доступна после настройки');
     });
   });
+  
+  // Обработка "Забыли пароль?"
+  setupForgotPassword();
+}
+
+// Настройка функционала "Забыли пароль?"
+function setupForgotPassword() {
+  const loginModal = qs('#login-modal');
+  if (!loginModal) return;
+  
+  const forgotPasswordSection = qs('#forgotPasswordSection', loginModal);
+  const loginForm = qs('#loginForm', loginModal);
+  const modalFooter = loginModal.querySelector('.modal__footer');
+  const modalTitle = qs('#login-modal-title', loginModal);
+  const modalDivider = qs('#loginModalDivider', loginModal);
+  const modalSocial = qs('#loginModalSocial', loginModal);
+  
+  // Кнопка "Забыли пароль?" - показать форму восстановления
+  qsa('[data-show-forgot-password]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      showForgotPasswordForm();
+    });
+  });
+  
+  // Кнопка "Вернуться к входу" - скрыть форму восстановления
+  qsa('[data-hide-forgot-password]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideForgotPasswordForm();
+    });
+  });
+  
+  // Обработка ссылки "Забыли пароль?" из модалки регистрации
+  qsa('[data-show-forgot-after]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      // Ждём переключения модалки, затем показываем форму восстановления
+      setTimeout(() => {
+        showForgotPasswordForm();
+      }, 100);
+    });
+  });
+  
+  // Обработка формы восстановления пароля
+  const forgotPasswordForm = qs('#forgotPasswordForm', loginModal);
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleForgotPasswordSubmit(forgotPasswordForm);
+    });
+  }
+  
+  function showForgotPasswordForm() {
+    // Меняем заголовок
+    if (modalTitle) modalTitle.textContent = 'Восстановление пароля';
+    
+    if (loginForm) loginForm.style.display = 'none';
+    if (modalFooter) modalFooter.style.display = 'none';
+    if (modalDivider) modalDivider.style.display = 'none';
+    if (modalSocial) modalSocial.style.display = 'none';
+    if (forgotPasswordSection) forgotPasswordSection.style.display = 'block';
+    
+    // Очищаем сообщения и поле email
+    const messageEl = qs('#forgotPasswordMessage');
+    const errorEl = qs('#forgotPasswordError');
+    const emailInput = qs('#forgotPasswordEmail');
+    if (messageEl) {
+      messageEl.style.display = 'none';
+      messageEl.textContent = '';
+    }
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+    if (emailInput) {
+      emailInput.value = '';
+    }
+  }
+  
+  function hideForgotPasswordForm() {
+    // Возвращаем заголовок
+    if (modalTitle) modalTitle.textContent = 'Вход в личный кабинет';
+    
+    if (loginForm) loginForm.style.display = 'block';
+    if (modalFooter) modalFooter.style.display = 'block';
+    if (modalDivider) modalDivider.style.display = 'flex';
+    if (modalSocial) modalSocial.style.display = 'flex';
+    if (forgotPasswordSection) forgotPasswordSection.style.display = 'none';
+  }
+}
+
+// Обработка отправки формы восстановления пароля
+async function handleForgotPasswordSubmit(form) {
+  // Явно ищем поле email по ID
+  const emailInput = document.getElementById('forgotPasswordEmail');
+  const messageEl = document.getElementById('forgotPasswordMessage');
+  const errorEl = document.getElementById('forgotPasswordError');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  
+  // Скрываем предыдущие сообщения
+  if (messageEl) {
+    messageEl.style.display = 'none';
+    messageEl.textContent = '';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  
+  // Получаем значение email
+  const email = emailInput ? emailInput.value.trim() : '';
+  
+  if (!email) {
+    if (errorEl) {
+      errorEl.textContent = 'Введите email';
+      errorEl.style.display = 'block';
+    }
+    return;
+  }
+  
+  // Блокируем кнопку
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Отправка...';
+  }
+  
+  try {
+    const formData = new FormData();
+    formData.append('email', email);
+    
+    const csrfToken = getCsrfToken();
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    
+    const response = await fetch('/password-reset/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      credentials: 'same-origin',
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      // Показываем сообщение об успехе
+      if (messageEl) {
+        messageEl.textContent = data.message;
+        messageEl.style.display = 'block';
+        messageEl.className = 'form__message form__message--success';
+      }
+      
+      // Очищаем поле email
+      if (emailInput) {
+        emailInput.value = '';
+      }
+    } else {
+      if (errorEl) {
+        errorEl.textContent = data.message || 'Произошла ошибка. Попробуйте ещё раз.';
+        errorEl.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    if (errorEl) {
+      errorEl.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+      errorEl.style.display = 'block';
+    }
+  } finally {
+    // Разблокируем кнопку
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Отправить инструкции';
+    }
+  }
 }
 
 // Создать контейнер для ошибок
@@ -1152,21 +1331,42 @@ function handleFormErrors(data, errorContainer, defaultMessage) {
 
 // Функция для обновления счётчика непрочитанных сообщений поддержки
 // Используется на всех страницах личного кабинета для единообразия
-function updateUnreadSupportCount() {
-  // Если на странице есть локальная функция updateUnreadCount (например, в support.js),
-  // используем её для получения актуального значения
-  if (typeof updateUnreadCount === 'function') {
-    updateUnreadCount();
+async function updateUnreadSupportCount() {
+  // Проверяем, находимся ли мы в личном кабинете (есть ли badge)
+  const badges = document.querySelectorAll('#unreadSupportCount');
+  if (badges.length === 0) {
     return;
   }
   
-  // Иначе обновляем все элементы счётчика на странице
-  // По умолчанию скрываем, если значение не задано
-  const badges = document.querySelectorAll('#unreadSupportCount');
-  badges.forEach(badge => {
-    const unreadCount = parseInt(badge.textContent) || 0;
-    badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
-  });
+  try {
+    const response = await fetch('/api/tickets/unread-count/', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const unreadCount = data.unread_count || 0;
+      
+      console.log('Unread support count:', unreadCount);
+      
+      badges.forEach(badge => {
+        badge.textContent = unreadCount;
+        badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+      });
+    } else {
+      console.log('Unread count API response not ok:', response.status);
+    }
+  } catch (error) {
+    console.log('Unread count API error:', error);
+    // Если ошибка (например, не авторизован), просто скрываем badge
+    badges.forEach(badge => {
+      badge.style.display = 'none';
+    });
+  }
 }
 
 // Инициализация плавной анимации для FAQ (по аналогии с accordion)

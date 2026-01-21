@@ -5,6 +5,75 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 
+class PasswordResetRequestForm(forms.Form):
+    """Форма запроса сброса пароля"""
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={
+            'class': 'form__field',
+            'placeholder': 'name@company.ru',
+            'required': True,
+        })
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        # Не сообщаем, существует ли email в системе (безопасность)
+        return email
+
+    def get_user(self):
+        """Возвращает пользователя по email или None"""
+        email = self.cleaned_data.get('email')
+        if email:
+            try:
+                return User.objects.get(email=email)
+            except User.DoesNotExist:
+                pass
+            except User.MultipleObjectsReturned:
+                return User.objects.filter(email=email).first()
+        return None
+
+
+class PasswordResetConfirmForm(forms.Form):
+    """Форма установки нового пароля"""
+    password = forms.CharField(
+        label='Новый пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form__field',
+            'placeholder': 'Минимум 8 символов',
+            'required': True,
+        })
+    )
+    password_confirm = forms.CharField(
+        label='Подтвердите пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form__field',
+            'placeholder': '••••••••',
+            'required': True,
+        })
+    )
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        if password:
+            try:
+                validate_password(password)
+            except ValidationError as e:
+                raise forms.ValidationError(list(e.messages))
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+
+        if password and password_confirm:
+            if password != password_confirm:
+                raise forms.ValidationError('Пароли не совпадают')
+
+        return cleaned_data
+
+
 class LoginForm(forms.Form):
     """Форма входа в личный кабинет"""
     email = forms.EmailField(

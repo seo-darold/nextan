@@ -26,6 +26,7 @@ function isAdminUser() {
 let ticketsData = [];
 
 async function loadTickets() {
+  showLoading();
   try {
     const response = await fetch('/api/tickets/', {
       method: 'GET',
@@ -48,11 +49,14 @@ async function loadTickets() {
       status: ticket.status,
       statusLabel: ticket.status_display,
       unread: ticket.has_unread || false,
+      unreadCount: ticket.unread_count || 0,
       lastMessageDate: new Date(ticket.updated_at)
     }));
     
+    hideLoading();
     return ticketsData;
   } catch (error) {
+    hideLoading();
     console.error('Ошибка загрузки тикетов:', error);
     ticketsData = [];
     return [];
@@ -193,6 +197,14 @@ function renderTickets(tickets) {
         card.classList.add('ticket-card--unread');
       }
 
+      // Формируем текст для непрочитанных сообщений
+      let unreadBadge = '';
+      if (ticket.unread && ticket.unreadCount > 0) {
+        const msgWord = ticket.unreadCount === 1 ? 'новое сообщение' : 
+                        (ticket.unreadCount >= 2 && ticket.unreadCount <= 4) ? 'новых сообщения' : 'новых сообщений';
+        unreadBadge = `<span class="ticket-card__unread-badge">${ticket.unreadCount} ${msgWord}</span>`;
+      }
+
       card.innerHTML = `
         <div class="ticket-card__header">
           <h3 class="ticket-card__title">${ticket.subject}</h3>
@@ -206,7 +218,7 @@ function renderTickets(tickets) {
           <div class="ticket-card__info">
             <span class="ticket-card__info-item">#${ticket.id}</span>
           </div>
-          ${ticket.unread ? '<span class="ticket-card__info-item">Новое сообщение</span>' : ''}
+          ${unreadBadge}
         </div>
       `;
       monthList.appendChild(card);
@@ -294,50 +306,141 @@ function setupFilter() {
   applyFilter();
 }
 
+// Функции для работы с модальным окном
+function openCreateTicketModal() {
+  const modal = document.getElementById('create-ticket-modal');
+  if (modal) {
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    // Фокус на первое поле формы
+    const subjectInput = document.getElementById('ticketSubject');
+    if (subjectInput) {
+      setTimeout(() => subjectInput.focus(), 100);
+    }
+  }
+}
+
+function closeCreateTicketModal() {
+  const modal = document.getElementById('create-ticket-modal');
+  if (modal) {
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    // Очищаем форму
+    const form = document.getElementById('createTicketForm');
+    if (form) {
+      form.reset();
+    }
+    // Скрываем ошибки
+    const errorDiv = document.getElementById('createTicketError');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+      errorDiv.textContent = '';
+    }
+  }
+}
+
+function showCreateTicketError(message) {
+  const errorDiv = document.getElementById('createTicketError');
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+}
+
 function setupCreateTicket() {
   const createBtn = document.getElementById('createTicketBtn');
-  if (!createBtn) return;
+  const modal = document.getElementById('create-ticket-modal');
+  const form = document.getElementById('createTicketForm');
+  
+  if (!createBtn || !modal) return;
 
+  // Открытие модального окна по кнопке
   createBtn.addEventListener('click', () => {
-    const subject = prompt('Введите тему тикета:');
-    if (!subject) return;
-    
-    const message = prompt('Введите сообщение:');
-    if (!message) return;
-    
-    // Создание тикета через API
-    fetch('/api/tickets/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrfToken(),
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        subject: subject,
-        message: message,
-        priority: 'medium'
-      }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert('Тикет успешно создан!');
-        // Перезагружаем список тикетов
-        loadTickets().then(() => {
+    openCreateTicketModal();
+  });
+  
+  // Закрытие модального окна
+  const closeButtons = modal.querySelectorAll('[data-modal-close]');
+  closeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeCreateTicketModal();
+    });
+  });
+  
+  // Закрытие по клавише Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+      closeCreateTicketModal();
+    }
+  });
+  
+  // Обработка отправки формы
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const subjectInput = document.getElementById('ticketSubject');
+      const messageInput = document.getElementById('ticketMessage');
+      
+      const subject = subjectInput ? subjectInput.value.trim() : '';
+      const message = messageInput ? messageInput.value.trim() : '';
+      
+      if (!subject) {
+        showCreateTicketError('Пожалуйста, введите тему обращения');
+        return;
+      }
+      
+      if (!message) {
+        showCreateTicketError('Пожалуйста, введите сообщение');
+        return;
+      }
+      
+      // Скрываем ошибку и показываем загрузку
+      const errorDiv = document.getElementById('createTicketError');
+      if (errorDiv) {
+        errorDiv.style.display = 'none';
+      }
+      
+      showLoading();
+      
+      try {
+        const response = await fetch('/api/tickets/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            subject: subject,
+            message: message,
+            priority: 'medium'
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Закрываем модальное окно
+          closeCreateTicketModal();
+          
+          // Перезагружаем список тикетов
+          await loadTickets();
+          hideLoading();
           const filterState = { period: 'all', search: '', dateFrom: null, dateTo: null };
           const filtered = filterTickets(ticketsData, filterState);
           renderTickets(filtered);
-        });
-      } else {
-        alert('Ошибка при создании тикета: ' + (data.error || 'Неизвестная ошибка'));
+        } else {
+          hideLoading();
+          showCreateTicketError(data.error || 'Произошла ошибка при создании тикета');
+        }
+      } catch (error) {
+        hideLoading();
+        showCreateTicketError('Произошла ошибка при создании тикета. Попробуйте ещё раз.');
+        console.error('Ошибка при создании тикета:', error.message);
       }
-    })
-    .catch(error => {
-      console.error('Ошибка:', error);
-      alert('Ошибка при создании тикета: ' + error.message);
     });
-  });
+  }
 }
 
 function setupPowerBI() {

@@ -388,12 +388,16 @@ function setupSaveButton() {
   if (!saveBtn) return;
 
   saveBtn.addEventListener('click', () => {
-    // В прототипе просто показываем сообщение
-    alert('Изменения сохранены. Они вступят в силу по завершении текущего оплаченного периода подписки.');
-    const notice = document.getElementById('subscriptionNotice');
-    if (notice) {
-      notice.hidden = false;
-    }
+    showLoading();
+    // В прототипе имитируем сохранение с небольшой задержкой
+    setTimeout(() => {
+      hideLoading();
+      const notice = document.getElementById('subscriptionNotice');
+      if (notice) {
+        notice.hidden = false;
+      }
+      console.log('Изменения сохранены. Они вступят в силу по завершении текущего оплаченного периода подписки.');
+    }, 500);
   });
 }
 
@@ -448,7 +452,7 @@ async function setupPayButton(subscriptionId) {
   payButton.textContent = 'Оплатить';
   payButton.type = 'button';
   payButton.addEventListener('click', () => {
-    alert('Переход на страницу оплаты');
+    console.log('Переход на страницу оплаты');
   });
   
   // Вставляем перед кнопкой "Сохранить"
@@ -501,10 +505,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const subscriptionId = urlParams.get('id') || '1';
   
+  showLoading();
   await setupOptionsEditor(subscriptionId);
   await renderPaymentsHistory(subscriptionId);
   setupSaveButton();
   await setupPayButton(subscriptionId);
   setupPowerBI();
+  hideLoading();
 });
 

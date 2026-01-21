@@ -351,6 +351,7 @@ class Ticket(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлен')
     resolved_at = models.DateTimeField(null=True, blank=True, verbose_name='Решён')
+    last_read_at = models.DateTimeField(null=True, blank=True, verbose_name='Последнее прочтение пользователем')
 
     class Meta:
         verbose_name = 'Тикет'
@@ -359,6 +360,25 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"#{self.id} - {self.subject} ({self.user.username})"
+    
+    def has_unread_messages(self):
+        """Проверяет, есть ли непрочитанные сообщения от поддержки"""
+        return self.get_unread_messages_count() > 0
+    
+    def get_unread_messages_count(self):
+        """Возвращает количество непрочитанных сообщений от поддержки"""
+        # Получаем сообщения не от владельца тикета
+        support_messages = self.messages.exclude(user=self.user)
+        
+        if not support_messages.exists():
+            return 0
+        
+        # Если пользователь ещё не читал тикет — все сообщения от поддержки непрочитанные
+        if not self.last_read_at:
+            return support_messages.count()
+        
+        # Считаем сообщения, созданные после последнего прочтения
+        return support_messages.filter(created_at__gt=self.last_read_at).count()
 
 
 class TicketMessage(models.Model):

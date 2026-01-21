@@ -70,10 +70,12 @@ async function renderCabinets() {
   const grid = document.getElementById('cabinetGrid');
   if (!grid) return;
 
-  grid.innerHTML = '<p class="cabinet-empty">Загрузка кабинетов...</p>';
+  showLoading();
+  grid.innerHTML = '';
 
   await loadCabinets();
 
+  hideLoading();
   grid.innerHTML = '';
 
   if (cabinetsData.length === 0) {
@@ -124,6 +126,8 @@ async function renderCabinetDetail() {
     return;
   }
   
+  showLoading();
+  
   try {
     const response = await fetch(`/api/cabinets/${cabinetId}/`, {
       method: 'GET',
@@ -143,6 +147,8 @@ async function renderCabinetDetail() {
 
     const cabinet = await response.json();
     
+    hideLoading();
+    
     // Устанавливаем заголовок
     const titleElement = document.getElementById('cabinetDetailTitle');
     if (titleElement) {
@@ -155,6 +161,7 @@ async function renderCabinetDetail() {
     // Рендерим личные данные
     renderPersonalData(cabinet);
   } catch (error) {
+    hideLoading();
     console.error('Ошибка загрузки кабинета:', error);
     window.location.href = '/cabinet/';
   }
@@ -317,6 +324,9 @@ function setupAddCabinetForm() {
       cabinetData.articlesPerCampaign = formData.get('articlesPerCampaign');
     }
     
+    // Показываем спиннер загрузки
+    showLoading();
+    
     // Отправка данных на сервер
     fetch('/api/cabinets/', {
       method: 'POST',
@@ -330,6 +340,8 @@ function setupAddCabinetForm() {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
+        hideLoading();
+        
         // Закрываем модальное окно формы
         const addCabinetModal = document.getElementById('add-cabinet-modal');
         if (addCabinetModal) {
@@ -350,12 +362,13 @@ function setupAddCabinetForm() {
         ozonFields.style.display = 'none';
         wbFields.style.display = 'none';
       } else {
-        alert('Ошибка при создании кабинета: ' + (data.error || 'Неизвестная ошибка'));
+        hideLoading();
+        console.error('Ошибка при создании кабинета:', data.error || 'Неизвестная ошибка');
       }
     })
     .catch(error => {
-      console.error('Ошибка:', error);
-      alert('Ошибка при создании кабинета: ' + error.message);
+      hideLoading();
+      console.error('Ошибка при создании кабинета:', error.message);
     });
   });
 }

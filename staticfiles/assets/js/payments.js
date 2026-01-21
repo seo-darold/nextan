@@ -26,6 +26,7 @@ function isAdminUser() {
 let paymentsData = [];
 
 async function loadPayments() {
+  showLoading();
   try {
     const response = await fetch('/api/payments/', {
       method: 'GET',
@@ -49,8 +50,10 @@ async function loadPayments() {
       payment_type: payment.payment_type,
     }));
     
+    hideLoading();
     return paymentsData;
   } catch (error) {
+    hideLoading();
     console.error('Ошибка загрузки платежей:', error);
     paymentsData = [];
     return [];
@@ -334,8 +337,8 @@ function setupExport() {
   if (!exportBtn) return;
 
   exportBtn.addEventListener('click', () => {
-    // В прототипе просто показываем сообщение
-    alert('Функция выгрузки в CSV/Excel будет реализована в полной версии');
+    // В прототипе просто показываем сообщение в консоль
+    console.log('Функция выгрузки в CSV/Excel будет реализована в полной версии');
   });
 }
 

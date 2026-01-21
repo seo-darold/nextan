@@ -1,4 +1,4 @@
-﻿{% extends 'lk-base.html' %}
+{% extends 'lk-base.html' %}
 {% load static %}
 
 {% block title %}Аккаунт — НекстАналитика{% endblock %}
@@ -17,17 +17,17 @@
         
         <label class="form__field">
           <span>Имя</span>
-          <input type="text" value="Иван" placeholder="Ваше имя" required>
+          <input type="text" name="first_name" value="Иван" placeholder="Ваше имя">
         </label>
         
         <label class="form__field">
           <span>Фамилия</span>
-          <input type="text" value="Петров" placeholder="Ваша фамилия">
+          <input type="text" name="last_name" value="Петров" placeholder="Ваша фамилия">
         </label>
         
         <label class="form__field">
           <span>Компания</span>
-          <input type="text" value="ООО «Торговый дом»" placeholder="Название компании">
+          <input type="text" name="company" value="ООО «Торговый дом»" placeholder="Название компании">
         </label>
       </div>
 
@@ -36,12 +36,12 @@
         
         <label class="form__field">
           <span>Email (логин)</span>
-          <input type="email" value="ivan.petrov@company.ru" placeholder="email@company.ru" required>
+          <input type="email" name="email" value="ivan.petrov@company.ru" placeholder="email@company.ru">
         </label>
         
         <label class="form__field">
           <span>Телефон</span>
-          <input type="tel" value="+7 999 123-45-67" placeholder="+7 999 000-00-00">
+          <input type="tel" name="phone" value="+7 999 123-45-67" placeholder="+7 999 000-00-00">
         </label>
       </div>
 
@@ -50,17 +50,17 @@
         
         <label class="form__field">
           <span>Текущий пароль</span>
-          <input type="password" placeholder="••••••••" required>
+          <input type="password" name="current_password" placeholder="••••••••">
         </label>
         
         <label class="form__field">
           <span>Новый пароль</span>
-          <input type="password" placeholder="••••••••">
+          <input type="password" name="new_password" placeholder="••••••••">
         </label>
         
         <label class="form__field">
           <span>Подтвердите новый пароль</span>
-          <input type="password" placeholder="••••••••">
+          <input type="password" name="confirm_password" placeholder="••••••••">
         </label>
       </div>
       
@@ -77,5 +77,6 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'assets/js/loading.js' %}"></script>
   <script src="{% static 'assets/js/account.js' %}" defer></script>
 {% endblock %}

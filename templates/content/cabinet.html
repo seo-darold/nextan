@@ -1,4 +1,4 @@
-﻿{% extends 'lk-base.html' %}
+{% extends 'lk-base.html' %}
 {% load static %}
 
 {% block title %}Кабинеты — НекстАналитика{% endblock %}
@@ -127,6 +127,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'assets/js/loading.js' %}"></script>
   <script src="{% static 'assets/js/cabinet.js' %}" defer></script>
 {% endblock %}
 

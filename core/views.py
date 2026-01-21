@@ -5,7 +5,11 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
-from .forms import LoginForm, RegisterForm
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+from .forms import LoginForm, RegisterForm, PasswordResetRequestForm, PasswordResetConfirmForm
+from .models import PasswordResetToken
 from cart.models import Cart
 
 
@@ -230,4 +234,120 @@ def check_auth_view(request):
         })
     return JsonResponse({
         'is_authenticated': False
+    })
+
+
+@require_http_methods(["POST"])
+def password_reset_request_view(request):
+    """
+    Обработка запроса на сброс пароля.
+    Всегда возвращает одинаковый ответ для безопасности (не раскрываем, существует ли email).
+    """
+    form = PasswordResetRequestForm(request.POST)
+    
+    success_message = 'Если такой email существует в системе, на него были отправлены инструкции по восстановлению пароля.'
+    
+    if form.is_valid():
+        user = form.get_user()
+        
+        if user:
+            # Создаём токен сброса пароля
+            reset_token = PasswordResetToken.create_token(user)
+            
+            # Формируем ссылку для сброса
+            reset_url = request.build_absolute_uri(
+                reverse('core:password_reset_confirm', kwargs={'token': reset_token.token})
+            )
+            
+            # Отправляем email
+            try:
+                subject = 'Восстановление пароля — НекстАналитика'
+                message = f'''
+Здравствуйте!
+
+Вы запросили восстановление пароля для аккаунта на сайте НекстАналитика.
+
+Для установки нового пароля перейдите по ссылке:
+{reset_url}
+
+Ссылка действительна в течение 12 часов.
+
+Если вы не запрашивали восстановление пароля, просто проигнорируйте это письмо.
+
+С уважением,
+Команда НекстАналитика
+'''
+                
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                # Логируем ошибку, но не раскрываем её пользователю
+                print(f"Error sending password reset email: {e}")
+    
+    # Всегда возвращаем успешный ответ для безопасности
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'message': success_message
+        })
+    
+    messages.success(request, success_message)
+    return redirect('content:index')
+
+
+@require_http_methods(["GET", "POST"])
+def password_reset_confirm_view(request, token):
+    """
+    Страница установки нового пароля.
+    """
+    # Проверяем токен
+    reset_token = PasswordResetToken.get_valid_token(token)
+    
+    if not reset_token:
+        return render(request, 'core/password_reset_invalid.html', {
+            'error': 'Ссылка для восстановления пароля недействительна или истекла.'
+        })
+    
+    if request.method == 'POST':
+        form = PasswordResetConfirmForm(request.POST)
+        
+        if form.is_valid():
+            # Устанавливаем новый пароль
+            user = reset_token.user
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            
+            # Помечаем токен как использованный
+            reset_token.is_used = True
+            reset_token.save()
+            
+            # Если запрос через AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Пароль успешно изменён! Теперь вы можете войти с новым паролем.',
+                    'redirect_url': reverse('content:index')
+                })
+            
+            messages.success(request, 'Пароль успешно изменён! Теперь вы можете войти с новым паролем.')
+            return redirect('content:index')
+        else:
+            # Если запрос через AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'errors': form.errors
+                }, status=400)
+    else:
+        form = PasswordResetConfirmForm()
+    
+    return render(request, 'core/password_reset_confirm.html', {
+        'form': form,
+        'token': token,
+        'user_email': reset_token.user.email
     })

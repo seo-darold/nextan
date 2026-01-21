@@ -152,3 +152,12 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 дней
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'seo-darold@yandex.ru'
+EMAIL_HOST_PASSWORD = 'jvleedssuyzhmsjz'
+DEFAULT_FROM_EMAIL = 'seo-darold@yandex.ru'  # Должен совпадать с EMAIL_HOST_USER для Яндекса

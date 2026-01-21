@@ -184,13 +184,32 @@
 
       <div class="modal__footer">
         <p>Нет аккаунта? <a href="#" data-switch-modal="register-modal" class="link">Зарегистрироваться</a></p>
+        <p><a href="#" data-show-forgot-password class="link">Забыли пароль?</a></p>
       </div>
 
-      <div class="modal__divider">
+      <!-- Форма восстановления пароля (скрыта по умолчанию) -->
+      <div id="forgotPasswordSection" class="modal__forgot-password" style="display: none;">
+        <form class="form form--stacked modal__form" id="forgotPasswordForm" method="post" action="{% url 'core:password_reset_request' %}">
+          {% csrf_token %}
+          <label class="form__field">
+            <span>Email</span>
+            <input type="email" name="email" id="forgotPasswordEmail" placeholder="name@company.ru" required>
+          </label>
+          <div id="forgotPasswordMessage" class="form__message" style="display: none;"></div>
+          <div id="forgotPasswordError" class="form__error" style="display: none;"></div>
+          <button type="submit" class="button button--primary button--block">Отправить инструкции</button>
+        </form>
+        
+        <div class="modal__footer">
+          <p><a href="#" data-hide-forgot-password class="link">Вернуться к входу</a></p>
+        </div>
+      </div>
+
+      <div class="modal__divider" id="loginModalDivider">
         <span>или</span>
       </div>
 
-      <div class="modal__social">
+      <div class="modal__social" id="loginModalSocial">
         <button class="button button--social button--social-vk">
           <span>VK ID</span>
         </button>
@@ -268,6 +287,7 @@
 
       <div class="modal__footer">
         <p>Уже есть аккаунт? <a href="#" data-switch-modal="login-modal" class="link">Войти</a></p>
+        <p><a href="#" data-switch-modal="login-modal" data-show-forgot-after class="link">Забыли пароль?</a></p>
       </div>
 
       <div class="modal__divider">
@@ -306,6 +326,8 @@
       </div>
     </div>
   </div>
+
+  {% block modals %}{% endblock %}
 
   <script src="{% static 'assets/js/app.js' %}" defer></script>
   {% block extra_js %}{% endblock %}

@@ -12,6 +12,7 @@ function getCsrfToken() {
 
 // Загрузка персональных данных
 async function loadPersonalData() {
+  showLoading();
   try {
     const response = await fetch('/api/personal-data/', {
       method: 'GET',
@@ -30,11 +31,11 @@ async function loadPersonalData() {
     // Заполняем форму данными
     const form = document.querySelector('.account-form');
     if (form) {
-      const firstNameInput = form.querySelector('input[placeholder*="имя"]');
-      const lastNameInput = form.querySelector('input[placeholder*="фамилия"]');
-      const companyInput = form.querySelector('input[placeholder*="компании"]');
-      const emailInput = form.querySelector('input[type="email"]');
-      const phoneInput = form.querySelector('input[type="tel"]');
+      const firstNameInput = form.querySelector('input[name="first_name"]');
+      const lastNameInput = form.querySelector('input[name="last_name"]');
+      const companyInput = form.querySelector('input[name="company"]');
+      const emailInput = form.querySelector('input[name="email"]');
+      const phoneInput = form.querySelector('input[name="phone"]');
 
       if (firstNameInput) firstNameInput.value = data.first_name || '';
       if (lastNameInput) lastNameInput.value = data.last_name || '';
@@ -42,7 +43,9 @@ async function loadPersonalData() {
       if (emailInput) emailInput.value = data.email || '';
       if (phoneInput) phoneInput.value = data.phone || '';
     }
+    hideLoading();
   } catch (error) {
+    hideLoading();
     console.error('Ошибка загрузки персональных данных:', error);
   }
 }
@@ -84,35 +87,38 @@ function setupAccountForm() {
     e.preventDefault();
     
     const formData = {
-      first_name: form.querySelector('input[placeholder*="имя"]')?.value || '',
-      last_name: form.querySelector('input[placeholder*="фамилия"]')?.value || '',
-      company: form.querySelector('input[placeholder*="компании"]')?.value || '',
-      email: form.querySelector('input[type="email"]')?.value || '',
-      phone: form.querySelector('input[type="tel"]')?.value || '',
+      first_name: form.querySelector('input[name="first_name"]')?.value || '',
+      last_name: form.querySelector('input[name="last_name"]')?.value || '',
+      company: form.querySelector('input[name="company"]')?.value || '',
+      email: form.querySelector('input[name="email"]')?.value || '',
+      phone: form.querySelector('input[name="phone"]')?.value || '',
     };
 
     // Проверка паролей (если они заполнены)
-    const currentPassword = form.querySelector('input[type="password"][placeholder*="Текущий"]')?.value;
-    const newPassword = form.querySelector('input[type="password"][placeholder*="Новый"]')?.value;
-    const confirmPassword = form.querySelector('input[type="password"][placeholder*="Подтвердите"]')?.value;
+    const currentPassword = form.querySelector('input[name="current_password"]')?.value || '';
+    const newPassword = form.querySelector('input[name="new_password"]')?.value || '';
+    const confirmPassword = form.querySelector('input[name="confirm_password"]')?.value || '';
 
     if (newPassword && newPassword !== confirmPassword) {
-      alert('Новые пароли не совпадают');
+      console.error('Новые пароли не совпадают');
       return;
     }
 
+    showLoading();
     try {
       await savePersonalData(formData);
+      hideLoading();
       
       // Если пароли заполнены, обрабатываем их отдельно
       if (currentPassword && newPassword) {
         // Здесь должна быть логика смены пароля через отдельный API
-        alert('Изменения сохранены. Для смены пароля используйте отдельную функцию.');
+        console.log('Изменения сохранены. Для смены пароля используйте отдельную функцию.');
       } else {
-        alert('Изменения успешно сохранены');
+        console.log('Изменения успешно сохранены');
       }
     } catch (error) {
-      alert('Ошибка при сохранении: ' + error.message);
+      hideLoading();
+      console.error('Ошибка при сохранении:', error.message);
     }
   });
 

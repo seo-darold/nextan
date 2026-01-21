@@ -135,6 +135,7 @@ function generateSubscriptionsData() {
 let subscriptionsData = [];
 
 async function loadSubscriptions() {
+  showLoading();
   try {
     const response = await fetch('/api/subscriptions/', {
       method: 'GET',
@@ -174,8 +175,10 @@ async function loadSubscriptions() {
       };
     });
     
+    hideLoading();
     return subscriptionsData;
   } catch (error) {
+    hideLoading();
     console.error('Ошибка загрузки подписок:', error);
     subscriptionsData = [];
     return [];
@@ -319,7 +322,7 @@ function renderSubscriptions(subscriptions) {
         ${sub.isActive 
           ? `<a href="/subscription/?id=${sub.id}" class="button button--primary button--block">Управлять</a>`
           : `<a href="/subscription/?id=${sub.id}" class="button button--secondary subscription-card__manage-btn">Управлять</a>
-             <button class="button button--primary subscription-card__pay-btn" onclick="alert('Переход на страницу оплаты')">Оплатить</button>`
+             <button class="button button--primary subscription-card__pay-btn" onclick="console.log('Переход на страницу оплаты')">Оплатить</button>`
         }
       </div>
     `;
@@ -394,7 +397,7 @@ function setupExport() {
 
   exportBtn.addEventListener('click', () => {
     // В прототипе просто показываем сообщение
-    alert('Функция выгрузки в CSV/Excel будет реализована в полной версии');
+    console.log('Функция выгрузки в CSV/Excel будет реализована в полной версии');
   });
 }
 

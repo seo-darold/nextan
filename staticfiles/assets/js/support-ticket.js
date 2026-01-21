@@ -30,8 +30,11 @@ function getTicketIdFromURL() {
 
 // Загрузка тикета с API
 async function loadTicket(ticketId) {
+  console.log('loadTicket called with ticketId:', ticketId);
   try {
-    const response = await fetch(`/api/tickets/${ticketId}/`, {
+    const url = `/api/tickets/${ticketId}/`;
+    console.log('Fetching URL:', url);
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'X-CSRFToken': getCsrfToken(),
@@ -39,14 +42,19 @@ async function loadTicket(ticketId) {
       credentials: 'same-origin',
     });
 
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
       if (response.status === 404) {
+        console.error('Тикет не найден (404)');
         return null;
       }
       throw new Error('Ошибка загрузки тикета');
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('Ticket data received:', data);
+    return data;
   } catch (error) {
     console.error('Ошибка загрузки тикета:', error);
     return null;
@@ -55,14 +63,19 @@ async function loadTicket(ticketId) {
 
 // Преобразование сообщений из API в формат для отображения
 function formatMessages(apiMessages) {
-  return apiMessages.map(msg => ({
-    id: msg.id,
-    author: msg.author,
-    authorType: msg.is_admin ? 'support' : 'user',
-    date: new Date(msg.created_at),
-    text: msg.message,
-    attachments: []
-  }));
+  return apiMessages.map(msg => {
+    // Если сообщение от текущего пользователя — тип 'user', иначе 'support'
+    const authorType = msg.is_current_user ? 'user' : 'support';
+    
+    return {
+      id: msg.id,
+      author: msg.author,
+      authorType: authorType,
+      date: new Date(msg.created_at),
+      text: msg.message,
+      attachments: []
+    };
+  });
 }
 
 function generateDefaultTicketMessages() {
@@ -270,6 +283,8 @@ function filterMessages(messages, searchTerm) {
 }
 
 async function setupTicketInfo(ticketId) {
+  console.log('setupTicketInfo called with ticketId:', ticketId);
+  
   const ticketTitle = document.getElementById('ticketTitle');
   const ticketIdSpan = document.getElementById('ticketId');
   const ticketDate = document.getElementById('ticketDate');
@@ -278,14 +293,19 @@ async function setupTicketInfo(ticketId) {
   // Загружаем данные тикета с API
   const ticket = await loadTicket(ticketId);
   
+  console.log('setupTicketInfo ticket:', ticket);
+  
   if (!ticket) {
-    alert('Тикет не найден. Перенаправление на список тикетов...');
-    window.location.href = '/support/';
+    console.error('Тикет не найден. Перенаправление на список тикетов...');
+    // Не редиректим сразу, сначала показываем ошибку
+    if (ticketTitle) {
+      ticketTitle.textContent = 'Тикет не найден';
+    }
     return null;
   }
 
   if (ticketTitle) {
-    ticketTitle.textContent = ticket.subject || 'Загрузка тикета...';
+    ticketTitle.textContent = ticket.subject || 'Без темы';
   }
   
   if (ticketIdSpan) {
@@ -338,10 +358,11 @@ function setupReplyForm(ticketId) {
     
     const text = textarea.value.trim();
     if (!text) {
-      alert('Пожалуйста, введите сообщение');
+      console.error('Пожалуйста, введите сообщение');
       return;
     }
 
+    showLoading();
     try {
       const response = await fetch(`/api/tickets/${ticketId}/`, {
         method: 'POST',
@@ -363,6 +384,7 @@ function setupReplyForm(ticketId) {
         
         // Перезагружаем тикет для получения новых сообщений
         const ticket = await loadTicket(ticketId);
+        hideLoading();
         if (ticket && ticket.messages) {
           const messages = formatMessages(ticket.messages);
           if (window.updateTicketMessages) {
@@ -372,11 +394,12 @@ function setupReplyForm(ticketId) {
           }
         }
       } else {
-        alert('Ошибка при отправке сообщения: ' + (data.error || 'Неизвестная ошибка'));
+        hideLoading();
+        console.error('Ошибка при отправке сообщения:', data.error || 'Неизвестная ошибка');
       }
     } catch (error) {
-      console.error('Ошибка:', error);
-      alert('Ошибка при отправке сообщения: ' + error.message);
+      hideLoading();
+      console.error('Ошибка при отправке сообщения:', error.message);
     }
   });
 }
@@ -419,27 +442,24 @@ function setupPowerBI() {
 }
 
 function updateUnreadCount() {
-  // Используем ту же функцию, что и в app.js для согласованности
-  if (typeof updateUnreadSupportCount === 'function') {
-    updateUnreadSupportCount();
-  } else {
-    // Fallback: просто обновляем счётчик
-    const badges = document.querySelectorAll('#unreadSupportCount');
-    badges.forEach(badge => {
-      badge.textContent = '0';
-      badge.style.display = 'none';
-    });
-  }
+  // Просто обновляем отображение счётчика на странице
+  const badges = document.querySelectorAll('#unreadSupportCount');
+  badges.forEach(badge => {
+    const count = parseInt(badge.textContent) || 0;
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const ticketId = getTicketIdFromURL();
   
   if (!ticketId) {
-    alert('Тикет не найден. Перенаправление на список тикетов...');
+    console.error('Тикет не найден. Перенаправление на список тикетов...');
     window.location.href = '/support/';
     return;
   }
+  
+  showLoading();
 
   setupSearch();
   setupReplyForm(ticketId);
@@ -448,6 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Загружаем тикет и его сообщения
   const ticket = await setupTicketInfo(ticketId);
+  hideLoading();
   if (ticket && ticket.messages) {
     const messages = formatMessages(ticket.messages);
     if (window.updateTicketMessages) {

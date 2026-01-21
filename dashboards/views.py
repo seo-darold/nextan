@@ -437,6 +437,18 @@ class PaymentListAPIView(APIView):
 
 
 @method_decorator(login_required, name='dispatch')
+class TicketUnreadCountAPIView(APIView):
+    """API для получения количества непрочитанных сообщений"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Получить общее количество непрочитанных сообщений во всех тикетах"""
+        tickets = Ticket.objects.filter(user=request.user)
+        unread_count = sum(ticket.get_unread_messages_count() for ticket in tickets)
+        return Response({'unread_count': unread_count})
+
+
+@method_decorator(login_required, name='dispatch')
 class TicketListAPIView(APIView):
     """API для работы с тикетами"""
     permission_classes = [IsAuthenticated]
@@ -455,7 +467,8 @@ class TicketListAPIView(APIView):
             'created_at': ticket.created_at.isoformat(),
             'updated_at': ticket.updated_at.isoformat(),
             'messages_count': ticket.messages.count(),
-            'has_unread': ticket.messages.filter(is_admin=True).exists() and not ticket.messages.filter(is_admin=True).last().created_at < ticket.updated_at,
+            'has_unread': ticket.has_unread_messages(),
+            'unread_count': ticket.get_unread_messages_count(),
         } for ticket in tickets]
         return Response(data)
     
@@ -506,12 +519,17 @@ class TicketDetailAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
+        # Отмечаем тикет как прочитанный
+        ticket.last_read_at = timezone.now()
+        ticket.save(update_fields=['last_read_at'])
+        
         messages = ticket.messages.all()
         messages_data = [{
             'id': msg.id,
             'message': msg.message,
             'is_admin': msg.is_admin,
-            'author': msg.user.username if not msg.is_admin else 'Администратор',
+            'author': msg.user.email if msg.user == request.user else 'Служба поддержки НекстАналитика',
+            'is_current_user': msg.user == request.user,
             'created_at': msg.created_at.isoformat(),
         } for msg in messages]
         

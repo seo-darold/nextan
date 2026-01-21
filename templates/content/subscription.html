@@ -1,4 +1,4 @@
-﻿{% extends 'lk-base.html' %}
+{% extends 'lk-base.html' %}
 {% load static %}
 
 {% block title %}Управление подпиской — НекстАналитика{% endblock %}
@@ -95,5 +95,6 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'assets/js/loading.js' %}"></script>
   <script src="{% static 'assets/js/subscription.js' %}" defer></script>
 {% endblock %}

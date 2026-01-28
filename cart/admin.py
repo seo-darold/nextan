@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Cart, CartItem
+from dashboards.admin_site import nextan_admin_site
 
 
 class CartItemInline(admin.TabularInline):
@@ -19,7 +20,6 @@ class CartItemInline(admin.TabularInline):
     total_price_display.short_description = 'Итоговая цена'
 
 
-@admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
     """Админка для корзин"""
     list_display = ('__str__', 'user', 'session_key', 'get_items_count', 'get_total', 'updated_at')
@@ -57,7 +57,6 @@ class CartAdmin(admin.ModelAdmin):
     get_items_count.short_description = 'Количество элементов'
 
 
-@admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
     """Админка для элементов корзины"""
     list_display = ('dashboard', 'cart', 'cabinets_count', 'months', 
@@ -87,3 +86,8 @@ class CartItemAdmin(admin.ModelAdmin):
             return f"{obj.get_total_price():,.2f} ₽"
         return "-"
     get_total_price.short_description = 'Итоговая цена'
+
+
+# Регистрируем на кастомном admin site
+nextan_admin_site.register(Cart, CartAdmin)
+nextan_admin_site.register(CartItem, CartItemAdmin)

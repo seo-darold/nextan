@@ -1,4 +1,3 @@
 from django.contrib import admin
 
-# Register your models here.
-admin.site.site_header = 'Некст Аналитика' 
+# Модели регистрируются на кастомном nextan_admin_site в dashboards/admin_site.py

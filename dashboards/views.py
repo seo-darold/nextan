@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.utils import timezone
+from django.utils.html import escape
 from datetime import timedelta
 from decimal import Decimal
 from .models import (
@@ -579,4 +581,71 @@ class TicketDetailAPIView(APIView):
             'success': True,
             'message_id': message.id,
             'message': 'Сообщение добавлено'
+        }, status=status.HTTP_201_CREATED)
+
+
+# === API для админки ===
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdminTicketMessageAPIView(APIView):
+    """API для отправки сообщений от администратора"""
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request, ticket_id):
+        """Добавить сообщение от администратора в тикет"""
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+        except Ticket.DoesNotExist:
+            return Response(
+                {'error': 'Тикет не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        message_text = request.data.get('message', '').strip()
+        if not message_text:
+            return Response(
+                {'error': 'Сообщение не может быть пустым'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Создаём сообщение от администратора
+        message = TicketMessage.objects.create(
+            ticket=ticket,
+            user=request.user,
+            message=message_text,
+            is_admin=True
+        )
+        
+        # Обновляем время последнего прочтения админом
+        ticket.last_admin_read_at = timezone.now()
+        ticket.save(update_fields=['last_admin_read_at', 'updated_at'])
+        
+        # Возвращаем HTML для нового сообщения
+        msg_html = f'''
+            <div style="
+                display: flex;
+                justify-content: flex-start;
+                margin-bottom: 10px;
+            ">
+                <div style="
+                    background: #ffffff;
+                    border: 1px solid #dee2e6;
+                    border-radius: 12px;
+                    padding: 10px 15px;
+                    max-width: 80%;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 5px;">
+                        <strong>🛡️ Поддержка</strong> · {escape(request.user.username)} · {message.created_at.strftime('%d.%m.%Y %H:%M')}
+                    </div>
+                    <div style="white-space: pre-wrap; word-wrap: break-word; color: #333;">{escape(message_text)}</div>
+                </div>
+            </div>
+        '''
+        
+        return Response({
+            'success': True,
+            'message_id': message.id,
+            'message_html': msg_html,
+            'created_at': message.created_at.isoformat(),
         }, status=status.HTTP_201_CREATED)

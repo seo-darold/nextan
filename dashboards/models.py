@@ -352,6 +352,7 @@ class Ticket(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлен')
     resolved_at = models.DateTimeField(null=True, blank=True, verbose_name='Решён')
     last_read_at = models.DateTimeField(null=True, blank=True, verbose_name='Последнее прочтение пользователем')
+    last_admin_read_at = models.DateTimeField(null=True, blank=True, verbose_name='Последнее прочтение администратором')
 
     class Meta:
         verbose_name = 'Тикет'
@@ -366,9 +367,9 @@ class Ticket(models.Model):
         return self.get_unread_messages_count() > 0
     
     def get_unread_messages_count(self):
-        """Возвращает количество непрочитанных сообщений от поддержки"""
-        # Получаем сообщения не от владельца тикета
-        support_messages = self.messages.exclude(user=self.user)
+        """Возвращает количество непрочитанных сообщений от поддержки для пользователя"""
+        # Получаем сообщения от staff (поддержки)
+        support_messages = self.messages.filter(user__is_staff=True)
         
         if not support_messages.exists():
             return 0
@@ -379,6 +380,35 @@ class Ticket(models.Model):
         
         # Считаем сообщения, созданные после последнего прочтения
         return support_messages.filter(created_at__gt=self.last_read_at).count()
+    
+    def get_unread_messages_count_for_admin(self):
+        """Возвращает количество непрочитанных сообщений от пользователя для админа"""
+        # Получаем сообщения от обычных пользователей (не от staff)
+        user_messages = self.messages.filter(user__is_staff=False)
+        
+        if not user_messages.exists():
+            return 0
+        
+        # Если админ ещё не читал тикет — все сообщения от пользователя непрочитанные
+        if not self.last_admin_read_at:
+            return user_messages.count()
+        
+        # Считаем сообщения, созданные после последнего прочтения админом
+        return user_messages.filter(created_at__gt=self.last_admin_read_at).count()
+    
+    def has_unread_messages_for_admin(self):
+        """Проверяет, есть ли непрочитанные сообщения от пользователя для админа"""
+        return self.get_unread_messages_count_for_admin() > 0
+    
+    @classmethod
+    def get_total_unread_messages_for_admin(cls):
+        """Возвращает общее количество непрочитанных сообщений во всех тикетах для админа"""
+        from django.db.models import Q, Count
+        
+        total = 0
+        for ticket in cls.objects.all():
+            total += ticket.get_unread_messages_count_for_admin()
+        return total
 
 
 class TicketMessage(models.Model):

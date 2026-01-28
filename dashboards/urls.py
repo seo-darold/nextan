@@ -27,5 +27,8 @@ urlpatterns = [
     path('api/tickets/', views.TicketListAPIView.as_view(), name='api_ticket_list'),
     path('api/tickets/unread-count/', views.TicketUnreadCountAPIView.as_view(), name='api_ticket_unread_count'),
     path('api/tickets/<int:ticket_id>/', views.TicketDetailAPIView.as_view(), name='api_ticket_detail'),
+    
+    # API для админки тикетов
+    path('api/admin/tickets/<int:ticket_id>/message/', views.AdminTicketMessageAPIView.as_view(), name='api_admin_ticket_message'),
 ]
 

@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import BlogCategory, BlogPost, RelatedPost
+from dashboards.admin_site import nextan_admin_site
 
 
-@admin.register(BlogCategory)
 class BlogCategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'is_active')
     list_filter = ('is_active',)
@@ -19,7 +19,6 @@ class RelatedPostInline(admin.TabularInline):
     ordering = ('order',)
 
 
-@admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = ('title', 'category', 'author_name', 'is_published', 'published_at', 'created_at')
     list_filter = ('is_published', 'category', 'published_at', 'created_at')
@@ -50,9 +49,14 @@ class BlogPostAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(RelatedPost)
 class RelatedPostAdmin(admin.ModelAdmin):
     list_display = ('post', 'related_post', 'order')
     list_filter = ('post',)
     search_fields = ('post__title', 'related_post__title')
     ordering = ('post', 'order')
+
+
+# Регистрируем на кастомном admin site
+nextan_admin_site.register(BlogCategory, BlogCategoryAdmin)
+nextan_admin_site.register(BlogPost, BlogPostAdmin)
+nextan_admin_site.register(RelatedPost, RelatedPostAdmin)

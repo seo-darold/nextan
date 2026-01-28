@@ -4,9 +4,9 @@ from .models import (
     Persona, ProcessStep, SchemeFlow, Benefit, 
     SocialProofMetric, FAQ, CompanyInfo, ContactRequest
 )
+from dashboards.admin_site import nextan_admin_site
 
 
-@admin.register(Persona)
 class PersonaAdmin(admin.ModelAdmin):
     list_display = ('title', 'is_active', 'order')
     list_filter = ('is_active',)
@@ -14,21 +14,18 @@ class PersonaAdmin(admin.ModelAdmin):
     ordering = ('order', 'title')
 
 
-@admin.register(ProcessStep)
 class ProcessStepAdmin(admin.ModelAdmin):
     list_display = ('step_number', 'title', 'time_tag', 'order')
     search_fields = ('title', 'description')
     ordering = ('order', 'step_number')
 
 
-@admin.register(SchemeFlow)
 class SchemeFlowAdmin(admin.ModelAdmin):
     list_display = ('step_number', 'tag', 'title', 'order')
     search_fields = ('tag', 'title', 'description')
     ordering = ('order', 'step_number')
 
 
-@admin.register(Benefit)
 class BenefitAdmin(admin.ModelAdmin):
     list_display = ('title', 'is_active', 'order', 'icon_preview')
     list_filter = ('is_active',)
@@ -55,7 +52,6 @@ class BenefitAdmin(admin.ModelAdmin):
     icon_preview.short_description = 'Превью иконки'
 
 
-@admin.register(SocialProofMetric)
 class SocialProofMetricAdmin(admin.ModelAdmin):
     list_display = ('label', 'value', 'is_active', 'order')
     list_filter = ('is_active',)
@@ -63,7 +59,6 @@ class SocialProofMetricAdmin(admin.ModelAdmin):
     ordering = ('order', 'label')
 
 
-@admin.register(FAQ)
 class FAQAdmin(admin.ModelAdmin):
     list_display = ('question', 'is_active', 'is_expanded', 'order')
     list_filter = ('is_active', 'is_expanded')
@@ -71,7 +66,6 @@ class FAQAdmin(admin.ModelAdmin):
     ordering = ('order', 'question')
 
 
-@admin.register(CompanyInfo)
 class CompanyInfoAdmin(admin.ModelAdmin):
     """Админка для информации о компании (синглтон)"""
     def has_add_permission(self, request):
@@ -101,7 +95,6 @@ class CompanyInfoAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(ContactRequest)
 class ContactRequestAdmin(admin.ModelAdmin):
     list_display = ('name', 'company', 'email', 'is_processed', 'created_at')
     list_filter = ('is_processed', 'created_at')
@@ -116,3 +109,14 @@ class ContactRequestAdmin(admin.ModelAdmin):
             'fields': ('is_processed', 'created_at')
         }),
     )
+
+
+# Регистрируем на кастомном admin site
+nextan_admin_site.register(Persona, PersonaAdmin)
+nextan_admin_site.register(ProcessStep, ProcessStepAdmin)
+nextan_admin_site.register(SchemeFlow, SchemeFlowAdmin)
+nextan_admin_site.register(Benefit, BenefitAdmin)
+nextan_admin_site.register(SocialProofMetric, SocialProofMetricAdmin)
+nextan_admin_site.register(FAQ, FAQAdmin)
+nextan_admin_site.register(CompanyInfo, CompanyInfoAdmin)
+nextan_admin_site.register(ContactRequest, ContactRequestAdmin)

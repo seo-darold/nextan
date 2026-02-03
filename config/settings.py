@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-+!^7)htj41-)f1nw(&ye&gl@77lhq2-r(+)o9*9b8#whb5!!j=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["134.17.17.168"]
+ALLOWED_HOSTS = ["134.17.17.168", "nextanalytics.ru", "www.nextanalytics.ru"]
 
 
 # Application definition

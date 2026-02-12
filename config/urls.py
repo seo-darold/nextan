@@ -22,6 +22,7 @@ from dashboards.admin_site import nextan_admin_site
 
 urlpatterns = [
     path('admin/', nextan_admin_site.urls),
+    path('accounts/', include('allauth.urls')),
     path('', include('content.urls')),
     path('blog/', include('blog.urls')),
     path('cart/', include('cart.urls')),

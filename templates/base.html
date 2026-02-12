@@ -165,60 +165,70 @@
     <div class="modal__overlay" data-modal-close></div>
     <div class="modal__content">
       <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
-      <h2 class="modal__title" id="login-modal-title">Вход в личный кабинет</h2>
-      
-      <form class="form form--stacked modal__form" id="loginForm" method="post" action="{% url 'core:login' %}">
-        {% csrf_token %}
-        <input type="hidden" name="next" id="loginNext" value="">
-        <label class="form__field">
-          <span>Email</span>
-          <input type="email" name="email" id="loginEmail" placeholder="name@company.ru" required>
-        </label>
-        <label class="form__field">
-          <span>Пароль</span>
-          <input type="password" name="password" id="loginPassword" placeholder="••••••••" required>
-        </label>
-        <div id="loginError" class="form__error" style="display: none;"></div>
-        <button type="submit" class="button button--primary button--block">Войти</button>
-      </form>
 
-      <div class="modal__footer">
-        <p>Нет аккаунта? <a href="#" data-switch-modal="register-modal" class="link">Зарегистрироваться</a></p>
-        <p><a href="#" data-show-forgot-password class="link">Забыли пароль?</a></p>
-      </div>
-
-      <!-- Форма восстановления пароля (скрыта по умолчанию) -->
-      <div id="forgotPasswordSection" class="modal__forgot-password" style="display: none;">
-        <form class="form form--stacked modal__form" id="forgotPasswordForm" method="post" action="{% url 'core:password_reset_request' %}">
+      <div id="login-modal-default-content">
+        <h2 class="modal__title" id="login-modal-title">Вход в личный кабинет</h2>
+        
+        <form class="form form--stacked modal__form" id="loginForm" method="post" action="{% url 'core:login' %}">
           {% csrf_token %}
+          <input type="hidden" name="next" id="loginNext" value="">
           <label class="form__field">
             <span>Email</span>
-            <input type="email" name="email" id="forgotPasswordEmail" placeholder="name@company.ru" required>
+            <input type="email" name="email" id="loginEmail" placeholder="name@company.ru" required>
           </label>
-          <div id="forgotPasswordMessage" class="form__message" style="display: none;"></div>
-          <div id="forgotPasswordError" class="form__error" style="display: none;"></div>
-          <button type="submit" class="button button--primary button--block">Отправить инструкции</button>
+          <label class="form__field">
+            <span>Пароль</span>
+            <input type="password" name="password" id="loginPassword" placeholder="••••••••" required>
+          </label>
+          <div id="loginError" class="form__error" style="display: none;"></div>
+          <button type="submit" class="button button--primary button--block">Войти</button>
         </form>
-        
+
         <div class="modal__footer">
-          <p><a href="#" data-hide-forgot-password class="link">Вернуться к входу</a></p>
+          <p>Нет аккаунта? <a href="#" data-switch-modal="register-modal" class="link">Зарегистрироваться</a></p>
+          <p><a href="#" data-show-forgot-password class="link">Забыли пароль?</a></p>
+        </div>
+
+        <!-- Форма восстановления пароля (скрыта по умолчанию) -->
+        <div id="forgotPasswordSection" class="modal__forgot-password" style="display: none;">
+          <form class="form form--stacked modal__form" id="forgotPasswordForm" method="post" action="{% url 'core:password_reset_request' %}">
+            {% csrf_token %}
+            <label class="form__field">
+              <span>Email</span>
+              <input type="email" name="email" id="forgotPasswordEmail" placeholder="name@company.ru" required>
+            </label>
+            <div id="forgotPasswordMessage" class="form__message" style="display: none;"></div>
+            <div id="forgotPasswordError" class="form__error" style="display: none;"></div>
+            <button type="submit" class="button button--primary button--block">Отправить инструкции</button>
+          </form>
+          
+          <div class="modal__footer">
+            <p><a href="#" data-hide-forgot-password class="link">Вернуться к входу</a></p>
+          </div>
+        </div>
+
+        <div class="modal__divider" id="loginModalDivider">
+          <span>или</span>
+        </div>
+
+        <div class="modal__social" id="loginModalSocial">
+          <button type="button" class="button button--social button--social-vk" data-vk-auth-in-modal data-vk-auth-modal-type="login">
+            <span>VK ID</span>
+          </button>
+          <button type="button" class="button button--social button--social-google">
+            <span>Google</span>
+          </button>
+          <button type="button" class="button button--social button--social-sber">
+            <span>Сбер ID</span>
+          </button>
         </div>
       </div>
 
-      <div class="modal__divider" id="loginModalDivider">
-        <span>или</span>
-      </div>
-
-      <div class="modal__social" id="loginModalSocial">
-        <button class="button button--social button--social-vk">
-          <span>VK ID</span>
-        </button>
-        <button class="button button--social button--social-google">
-          <span>Google</span>
-        </button>
-        <button class="button button--social button--social-sber">
-          <span>Сбер ID</span>
-        </button>
+      <!-- Блок входа через VK (показывается по клику на VK в модалке) -->
+      <div id="login-modal-vk-content" style="display: none;">
+        <h2 class="modal__title">Вход через VK</h2>
+        <p><a href="#" class="link" data-vk-auth-back data-vk-auth-back-modal="login-modal">← Назад</a></p>
+        <div id="login-modal-vk-container" class="vkid-onetap-container"></div>
       </div>
     </div>
   </div>
@@ -228,83 +238,103 @@
     <div class="modal__overlay" data-modal-close></div>
     <div class="modal__content modal__content--wide">
       <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
-      <h2 class="modal__title" id="register-modal-title">Регистрация</h2>
-      
-      <form class="form form--stacked modal__form" id="registerForm" method="post" action="{% url 'core:register' %}">
-        {% csrf_token %}
-        <input type="hidden" name="next" id="registerNext" value="">
-        
-        <div class="form__row">
-          <label class="form__field">
-            <span>Email <span class="form__required">*</span></span>
-            <input type="email" name="email" id="registerEmail" placeholder="name@company.ru" required>
-          </label>
-        </div>
-        
-        <div class="form__row form__row--two">
-          <label class="form__field">
-            <span>Пароль <span class="form__required">*</span></span>
-            <input type="password" name="password" id="registerPassword" placeholder="Минимум 8 символов" required>
-          </label>
-          <label class="form__field">
-            <span>Подтвердите пароль <span class="form__required">*</span></span>
-            <input type="password" name="password_confirm" id="registerPasswordConfirm" placeholder="••••••••" required>
-          </label>
-        </div>
-        
-        <div class="form__row form__row--two">
-          <label class="form__field">
-            <span>Имя</span>
-            <input type="text" name="first_name" id="registerFirstName" placeholder="Иван">
-          </label>
-          <label class="form__field">
-            <span>Фамилия</span>
-            <input type="text" name="last_name" id="registerLastName" placeholder="Иванов">
-          </label>
-        </div>
-        
-        <div class="form__row form__row--two">
-          <label class="form__field">
-            <span>Компания</span>
-            <input type="text" name="company" id="registerCompany" placeholder="ООО «Ваша компания»">
-          </label>
-          <label class="form__field">
-            <span>Телефон</span>
-            <input type="tel" name="phone" id="registerPhone" placeholder="+7 (999) 123-45-67">
-          </label>
-        </div>
-        
-        <div class="form__row">
-          <label class="form__checkbox-wrapper">
-            <input type="checkbox" name="agree_terms" id="registerAgreeTerms" class="form__checkbox" required>
-            <span class="form__checkbox-label">Я согласен с <a href="#" class="link">условиями использования</a> и <a href="#" class="link">политикой конфиденциальности</a></span>
-          </label>
-        </div>
-        
-        <div id="registerError" class="form__error" style="display: none;"></div>
-        <button type="submit" class="button button--primary button--block">Зарегистрироваться</button>
-      </form>
 
-      <div class="modal__footer">
-        <p>Уже есть аккаунт? <a href="#" data-switch-modal="login-modal" class="link">Войти</a></p>
-        <p><a href="#" data-switch-modal="login-modal" data-show-forgot-after class="link">Забыли пароль?</a></p>
+      <div id="register-modal-default-content">
+        <h2 class="modal__title" id="register-modal-title">Регистрация</h2>
+        
+        <form class="form form--stacked modal__form" id="registerForm" method="post" action="{% url 'core:register' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" id="registerNext" value="">
+          
+          <div class="form__row">
+            <label class="form__field">
+              <span>Email <span class="form__required">*</span></span>
+              <input type="email" name="email" id="registerEmail" placeholder="name@company.ru" required>
+            </label>
+          </div>
+          
+          <div class="form__row form__row--two">
+            <label class="form__field">
+              <span>Пароль <span class="form__required">*</span></span>
+              <input type="password" name="password" id="registerPassword" placeholder="Минимум 8 символов" required>
+            </label>
+            <label class="form__field">
+              <span>Подтвердите пароль <span class="form__required">*</span></span>
+              <input type="password" name="password_confirm" id="registerPasswordConfirm" placeholder="••••••••" required>
+            </label>
+          </div>
+          
+          <div class="form__row form__row--two">
+            <label class="form__field">
+              <span>Имя</span>
+              <input type="text" name="first_name" id="registerFirstName" placeholder="Иван">
+            </label>
+            <label class="form__field">
+              <span>Фамилия</span>
+              <input type="text" name="last_name" id="registerLastName" placeholder="Иванов">
+            </label>
+          </div>
+          
+          <div class="form__row form__row--two">
+            <label class="form__field">
+              <span>Компания</span>
+              <input type="text" name="company" id="registerCompany" placeholder="ООО «Ваша компания»">
+            </label>
+            <label class="form__field">
+              <span>Телефон</span>
+              <input type="tel" name="phone" id="registerPhone" placeholder="+7 (999) 123-45-67">
+            </label>
+          </div>
+          
+          <div class="form__row">
+            <label class="form__checkbox-wrapper">
+              <input type="checkbox" name="agree_terms" id="registerAgreeTerms" class="form__checkbox" required>
+              <span class="form__checkbox-label">Я согласен с <a href="#" class="link">условиями использования</a> и <a href="#" class="link">политикой конфиденциальности</a></span>
+            </label>
+          </div>
+          
+          <div id="registerError" class="form__error" style="display: none;"></div>
+          <button type="submit" class="button button--primary button--block">Зарегистрироваться</button>
+        </form>
+
+        <div class="modal__footer">
+          <p>Уже есть аккаунт? <a href="#" data-switch-modal="login-modal" class="link">Войти</a></p>
+          <p><a href="#" data-switch-modal="login-modal" data-show-forgot-after class="link">Забыли пароль?</a></p>
+        </div>
+
+        <div class="modal__divider">
+          <span>или</span>
+        </div>
+
+        <div class="modal__social">
+          <button type="button" class="button button--social button--social-vk" data-vk-auth-in-modal data-vk-auth-modal-type="register">
+            <span>VK ID</span>
+          </button>
+          <button type="button" class="button button--social button--social-google">
+            <span>Google</span>
+          </button>
+          <button type="button" class="button button--social button--social-sber">
+            <span>Сбер ID</span>
+          </button>
+        </div>
       </div>
 
-      <div class="modal__divider">
-        <span>или</span>
+      <!-- Блок входа через VK в модалке регистрации -->
+      <div id="register-modal-vk-content" style="display: none;">
+        <h2 class="modal__title">Вход через VK</h2>
+        <p><a href="#" class="link" data-vk-auth-back data-vk-auth-back-modal="register-modal">← Назад</a></p>
+        <div id="register-modal-vk-container" class="vkid-onetap-container"></div>
       </div>
+    </div>
+  </div>
 
-      <div class="modal__social">
-        <button class="button button--social button--social-vk">
-          <span>VK ID</span>
-        </button>
-        <button class="button button--social button--social-google">
-          <span>Google</span>
-        </button>
-        <button class="button button--social button--social-sber">
-          <span>Сбер ID</span>
-        </button>
-      </div>
+  <!-- Модальное окно входа через VK (отдельная модалка для страницы логина) -->
+  <div class="modal" id="vk-auth-modal" role="dialog" aria-labelledby="vk-auth-modal-title" aria-hidden="true">
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Закрыть" data-modal-close>×</button>
+      <h2 class="modal__title" id="vk-auth-modal-title">Вход через VK</h2>
+      <div id="vk-auth-modal-container" class="vkid-onetap-container"></div>
     </div>
   </div>
 
@@ -329,6 +359,10 @@
 
   {% block modals %}{% endblock %}
 
+  <script>
+    window.GOOGLE_LOGIN_URL = "{{ google_login_url|default:''|escapejs }}";
+    window.VK_AUTH_REDIRECT_URL = "{{ vk_auth_redirect_url|default:'https://nextanalytics.ru/auth/vk-id-callback/'|escapejs }}";
+  </script>
   <script src="{% static 'assets/js/app.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
 </body>

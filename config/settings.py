@@ -10,10 +10,24 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Загрузка переменных из .env (GOOGLE_OAUTH_*, и т.д.) — не перезаписываем уже заданные
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    with open(_env_file, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, _, value = line.partition('=')
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and os.environ.get(key) is None:
+                    os.environ[key] = value
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,7 +51,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
+    # Allauth (email + social auth)
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     # Local apps
     'core',
     'content.apps.ContentConfig',
@@ -46,12 +66,15 @@ INSTALLED_APPS = [
     'blog.apps.BlogConfig',
 ]
 
+SITE_ID = 1
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -69,6 +92,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'content.context_processors.company_info',
+                'core.context_processors.google_login_url',
+                'core.context_processors.vk_auth_redirect_url',
             ],
         },
     },
@@ -98,6 +123,14 @@ DATABASES = {
     }
 }
 
+# Кэш: общий для всех воркеров (PKCE для VK ID при редиректе с id.vk.ru)
+# Без этого code_verifier, сохранённый в prepare, не находился бы в callback (другой процесс).
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -146,6 +179,43 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Allauth: форма входа своя (/login/), соц. вход — Google
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Google OAuth: задайте в окружении GOOGLE_OAUTH_CLIENT_ID и GOOGLE_OAUTH_CLIENT_SECRET
+# (создайте OAuth 2.0 Client в Google Cloud Console, тип «Веб-приложение»)
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT_ID', ''),
+            'secret': os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+        },
+    },
+}
+SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+# Сразу редирект на Google при GET /accounts/google/login/, без промежуточной страницы «Войти через Google»
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# VK ID: без VK_CLIENT_SECRET вход через VK выдаст «VK ID не настроен».
+# Добавьте в .env в корне проекта (рядом с manage.py): VK_CLIENT_SECRET=ваш_защищённый_ключ
+# Либо задайте переменную окружения при запуске (systemd, gunicorn, хостинг).
+VK_APP_ID = os.environ.get('VK_APP_ID', '54440895').strip()
+VK_CLIENT_SECRET = os.environ.get('VK_CLIENT_SECRET', '').strip()
+VK_AUTH_REDIRECT_URL = os.environ.get('VK_AUTH_REDIRECT_URL', 'https://nextanalytics.ru/auth/vk-id-callback/').strip()
+# Эндпоинты VK ID (домен id.vk.ru). По документации обмен кода на токены — id.vk.ru/oauth2/auth, grant_type=authorization_code
+VK_ID_TOKEN_URL = os.environ.get('VK_ID_TOKEN_URL', 'https://id.vk.ru/oauth2/auth')
+VK_ID_USER_INFO_URL = 'https://id.vk.ru/oauth2/user_info'
 
 # Session settings
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 дней

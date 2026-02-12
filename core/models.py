@@ -4,6 +4,30 @@ from django.utils import timezone
 import secrets
 
 
+class VKIdLink(models.Model):
+    """Привязка аккаунта VK ID к пользователю Django (для входа через VK ID)."""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='vk_id_link',
+        verbose_name='Пользователь',
+    )
+    vk_user_id = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        verbose_name='ID пользователя VK',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата привязки')
+
+    class Meta:
+        verbose_name = 'Привязка VK ID'
+        verbose_name_plural = 'Привязки VK ID'
+
+    def __str__(self):
+        return f"{self.user.email} — VK ID {self.vk_user_id}"
+
+
 class PasswordResetToken(models.Model):
     """Токен для восстановления пароля"""
     user = models.ForeignKey(

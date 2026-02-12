@@ -737,6 +737,159 @@ function initScrollLinks() {
   });
 }
 
+// --- VK ID SDK (One Tap) + PKCE ---
+const VK_SDK_URL = 'https://unpkg.com/@vkid/sdk@2/dist-sdk/umd/index.js';
+let vkSDKLoadPromise = null;
+let vkAuthState = null;
+let vkCodeVerifier = null; // code_verifier для текущей сессии (передаётся на бэкенд при обмене кода, по документации VK)
+
+function loadVKSDK() {
+  if (typeof window !== 'undefined' && window.VKIDSDK) return Promise.resolve();
+  if (vkSDKLoadPromise) return vkSDKLoadPromise;
+  vkSDKLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = VK_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Не удалось загрузить VK ID SDK'));
+    document.head.appendChild(script);
+  });
+  return vkSDKLoadPromise;
+}
+
+function vkRandomString(length, charset) {
+  const chars = charset || 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+  let s = '';
+  const arr = new Uint8Array(length);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < length; i++) s += chars[arr[i] % chars.length];
+  } else {
+    for (let i = 0; i < length; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return s;
+}
+
+function vkBase64UrlEncode(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function vkGenerateCodeChallenge(codeVerifier) {
+  return crypto.subtle
+    .digest('SHA-256', new TextEncoder().encode(codeVerifier))
+    .then(vkBase64UrlEncode);
+}
+
+function vkPreparePKCE() {
+  const codeVerifier = vkRandomString(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-');
+  const state = vkRandomString(40, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
+  return vkGenerateCodeChallenge(codeVerifier).then(function (codeChallenge) {
+    return fetch('/api/vk-id-prepare/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ state: state, code_verifier: codeVerifier }),
+      credentials: 'same-origin',
+    })
+      .then((res) => res.json().then((data) => ({ status: res.status, data })))
+      .then(({ status, data }) => {
+        if (!data.success) throw new Error(data.error || 'Ошибка подготовки VK');
+        return { code_challenge: codeChallenge, state: state, code_verifier: codeVerifier };
+      });
+  });
+}
+
+const vkWidgetRenderedContainers = new Set();
+
+function initVKAuth(container) {
+  if (!container || !container.id) return;
+  if (vkWidgetRenderedContainers.has(container.id)) return;
+  loadVKSDK()
+    .then(function () {
+      if (!('VKIDSDK' in window)) return null;
+      return vkPreparePKCE();
+    })
+    .then(function (pkce) {
+      if (!pkce || !('VKIDSDK' in window)) return;
+      vkAuthState = pkce.state;
+      vkCodeVerifier = pkce.code_verifier;
+      const VKID = window.VKIDSDK;
+      const redirectUrl = window.VK_AUTH_REDIRECT_URL || 'https://nextanalytics.ru/auth/vk-id-callback/';
+      VKID.Config.init({
+        app: 54440895,
+        redirectUrl: redirectUrl,
+        responseMode: VKID.ConfigResponseMode.Callback,
+        source: VKID.ConfigSource.LOWCODE,
+        scope: 'vkid.personal_info email',
+        prompt: 'consent',
+        codeChallenge: pkce.code_challenge,
+        codeChallengeMethod: 'S256',
+        state: pkce.state,
+      });
+      const oneTap = new VKID.OneTap();
+      oneTap
+        .render({
+          container: container,
+          showAlternativeLogin: true,
+        })
+        .on(VKID.WidgetEvents.ERROR, vkidOnError)
+        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+          const code = payload.code;
+          const deviceId = payload.device_id || '';
+          vkidSendCodeToBackend(code, deviceId);
+        });
+      vkWidgetRenderedContainers.add(container.id);
+    })
+    .catch((err) => {
+      console.error('VK ID SDK:', err);
+      vkidOnError(err.message || 'Ошибка инициализации VK');
+    });
+}
+
+function vkidSendCodeToBackend(code, deviceId) {
+  const next =
+    (document.querySelector('#loginNext') && document.querySelector('#loginNext').value) ||
+    (new URLSearchParams(window.location.search).get('next') || '');
+  const payload = { code: code, device_id: deviceId };
+  if (vkAuthState) payload.state = vkAuthState;
+  if (vkCodeVerifier) payload.code_verifier = vkCodeVerifier;
+  if (next) payload.next = next;
+  fetch('/api/vk-id-auth/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+    credentials: 'same-origin',
+  })
+    .then((res) => res.json().then((data) => ({ status: res.status, data })))
+    .then(({ status, data }) => {
+      if (data.success && data.redirect_url) {
+        // Редирект в верхнее окно, чтобы выйти из iframe (виджет VK) и кука сохранилась в основном документе
+        (window.top || window).location.href = data.redirect_url;
+      } else {
+        vkidOnError(data.error || 'Ошибка входа через VK');
+      }
+    })
+    .catch((err) => {
+      console.error('VK ID backend request failed', err);
+      vkidOnError(err.message || 'Ошибка соединения');
+    });
+}
+
+function vkidOnError(error) {
+  console.error('VK ID auth error', error);
+  if (typeof error === 'string' && error) alert(error);
+}
+
 function initModal() {
   const openButtons = qsa('[data-modal-open]');
   const closeButtons = qsa('[data-modal-close]');
@@ -758,7 +911,13 @@ function initModal() {
       const targetModal = qs(`#${targetModalId}`);
       if (targetModal) {
         targetModal.setAttribute('aria-hidden', 'false');
-        
+        // При открытии login/register показываем основной контент, скрываем блок VK
+        if (targetModalId === 'login-modal' || targetModalId === 'register-modal') {
+          const defaultContent = targetModal.querySelector('[id$="-modal-default-content"]');
+          const vkContent = targetModal.querySelector('[id$="-modal-vk-content"]');
+          if (defaultContent) defaultContent.style.display = '';
+          if (vkContent) vkContent.style.display = 'none';
+        }
         // Если это переход из auth-choice-modal, устанавливаем флаг pendingCheckout
         if (checkoutNext) {
           pendingCheckout = true;
@@ -872,6 +1031,9 @@ function initModal() {
       if (modal) {
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        if (modalId === 'vk-auth-modal') {
+          setTimeout(() => initVKAuth(qs('#vk-auth-modal-container')), 150);
+        }
       }
     });
   });
@@ -913,7 +1075,67 @@ function initModal() {
     }
   });
 
-  qsa('.button--social').forEach((button) => {
+  qsa('.button--social-google').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.GOOGLE_LOGIN_URL) {
+        const next = (button.closest('.modal') && document.querySelector('#loginNext')) 
+          ? document.querySelector('#loginNext').value 
+          : (new URLSearchParams(window.location.search).get('next') || '');
+        const url = next ? window.GOOGLE_LOGIN_URL + (window.GOOGLE_LOGIN_URL.includes('?') ? '&' : '?') + 'next=' + encodeURIComponent(next) : window.GOOGLE_LOGIN_URL;
+        window.location.href = url;
+      } else {
+        alert('Функция социальной авторизации будет доступна после настройки');
+      }
+    });
+  });
+
+  // VK: в модалке из шапки — заменяем контент на блок VK; на странице логина — открывается через data-modal-open="vk-auth-modal"
+  qsa('[data-vk-auth-in-modal]').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modalType = button.dataset.vkAuthModalType;
+      const modal = modalType === 'login' ? qs('#login-modal') : qs('#register-modal');
+      if (!modal) return;
+      const defaultContent = modal.querySelector(`#${modalType}-modal-default-content`);
+      const vkContent = modal.querySelector(`#${modalType}-modal-vk-content`);
+      const containerId = modalType === 'login' ? 'login-modal-vk-container' : 'register-modal-vk-container';
+      if (defaultContent) defaultContent.style.display = 'none';
+      if (vkContent) vkContent.style.display = 'block';
+      const container = qs(`#${containerId}`);
+      if (container) initVKAuth(container);
+    });
+  });
+
+  qsa('[data-vk-auth-back]').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modalId = button.dataset.vkAuthBackModal;
+      const modal = qs(modalId ? `#${modalId}` : null) || button.closest('.modal');
+      if (!modal) return;
+      const defaultContent = modal.querySelector('[id$="-modal-default-content"]');
+      const vkContent = modal.querySelector('[id$="-modal-vk-content"]');
+      if (defaultContent) defaultContent.style.display = '';
+      if (vkContent) vkContent.style.display = 'none';
+    });
+  });
+
+  // При открытии login/register модалки возвращаем показ основного контента
+  ['login-modal', 'register-modal'].forEach((modalId) => {
+    const modal = qs(`#${modalId}`);
+    if (!modal) return;
+    const defaultContent = modal.querySelector('[id$="-modal-default-content"]');
+    const vkContent = modal.querySelector('[id$="-modal-vk-content"]');
+    const openBtns = qsa(`[data-modal-open="${modalId}"]`);
+    openBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (defaultContent) defaultContent.style.display = '';
+        if (vkContent) vkContent.style.display = 'none';
+      });
+    });
+  });
+
+  qsa('.button--social-sber, .button--social:not(.button--social-google):not(.button--social-vk)').forEach((button) => {
     button.addEventListener('click', (e) => {
       e.preventDefault();
       alert('Функция социальной авторизации будет доступна после настройки');

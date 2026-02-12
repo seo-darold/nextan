@@ -5915,6 +5915,17 @@ a {
   gap: 20px;
 }
 
+.form__divider {
+  text-align: center;
+  margin: 8px 0 4px;
+  font-size: 0.9rem;
+  color: var(--color-muted, rgba(44, 47, 77, 0.6));
+}
+
+.form__divider + .button {
+  margin-top: 4px;
+}
+
 .form__field label {
   font-weight: 500;
   font-size: 0.9rem;

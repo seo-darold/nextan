@@ -14,6 +14,11 @@
 <section class="section login-section">
   <div class="login-container">
     <div class="login-card">
+      {% if vk_error %}
+      <div class="form__error" role="alert" style="margin-bottom: 1rem;">
+        <p>{{ vk_error }}</p>
+      </div>
+      {% endif %}
       <form class="form form--stacked" method="post" action="{% url 'core:login' %}">
         {% csrf_token %}
         
@@ -50,6 +55,18 @@
         </label>
         
         <button type="submit" class="button button--primary button--block">Войти</button>
+
+        <p class="form__divider">или</p>
+        <div class="form__social-buttons">
+          {% if google_login_url %}
+          <a href="{{ google_login_url }}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="button button--secondary button--block button--social-google">
+            Войти через Google
+          </a>
+          {% endif %}
+          <button type="button" class="button button--secondary button--block button--social button--social-vk" data-modal-open="vk-auth-modal">
+            Войти через VK
+          </button>
+        </div>
       </form>
     </div>
   </div>

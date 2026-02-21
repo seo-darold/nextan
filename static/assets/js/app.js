@@ -995,16 +995,50 @@ function initModal() {
       
       if (!isLoginForm && !isRegisterForm) return;
       
-      // Превентим отправку формы
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      
       const errorContainer = targetForm.querySelector('.form__error') || createErrorContainer(targetForm);
       errorContainer.style.display = 'none';
       errorContainer.textContent = '';
       
-      // Получаем CSRF токен
+      // Регистрация без checkout — обычная отправка формы (POST + 302), чтобы сессия точно сохранилась
+      if (isRegisterForm && !pendingCheckout) {
+        const email = (targetForm.querySelector('input[name="email"]')?.value || '').trim();
+        const password = targetForm.querySelector('input[name="password"]')?.value || '';
+        const passwordConfirm = targetForm.querySelector('input[name="password_confirm"]')?.value || '';
+        const agreeTerms = targetForm.querySelector('input[name="agree_terms"]')?.checked;
+        if (!email || !password || !passwordConfirm) {
+          e.preventDefault();
+          errorContainer.textContent = 'Заполните обязательные поля';
+          errorContainer.style.display = 'block';
+          return;
+        }
+        if (password !== passwordConfirm) {
+          e.preventDefault();
+          errorContainer.textContent = 'Пароли не совпадают';
+          errorContainer.style.display = 'block';
+          return;
+        }
+        if (!agreeTerms) {
+          e.preventDefault();
+          errorContainer.textContent = 'Необходимо согласиться с условиями использования';
+          errorContainer.style.display = 'block';
+          return;
+        }
+        const nextInput = targetForm.querySelector('input[name="next"]');
+        if (nextInput && !nextInput.value.trim()) {
+          nextInput.value = '/dashboard/';
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        showFormLoadingOverlay(targetForm); // спиннер и белый полупрозрачный оверлей
+        targetForm.submit(); // обычный POST — браузер получит 302 с Set-Cookie и перейдёт в кабинет
+        return;
+      }
+      
+      // Превентим отправку формы (вход или регистрация с checkout)
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
       const csrfInput = targetForm.querySelector('input[name="csrfmiddlewaretoken"]');
       let csrfToken = csrfInput?.value || getCsrfToken();
       
@@ -1333,6 +1367,31 @@ function createErrorContainer(form) {
   return errorContainer;
 }
 
+// Показать оверлей со спиннером поверх контейнера формы (вход или регистрация)
+function showFormLoadingOverlay(form) {
+  const container = form.closest('.login-card') ||
+    form.closest('#login-modal-default-content') ||
+    form.closest('#register-modal-default-content') ||
+    form.parentElement;
+  if (!container) return null;
+  container.style.position = container.style.position || 'relative';
+  const overlay = document.createElement('div');
+  overlay.className = 'form-loading-overlay';
+  overlay.setAttribute('aria-hidden', 'false');
+  overlay.innerHTML = '<div class="loading-spinner"><div class="loading-spinner__circle"></div></div>';
+  container.appendChild(overlay);
+  return overlay;
+}
+
+// Алиас для обратной совместимости
+function showLoginFormOverlay(form) {
+  return showFormLoadingOverlay(form);
+}
+
+function hideLoginFormOverlay(overlay) {
+  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+}
+
 // Обработка отправки формы входа
 async function handleLoginFormSubmit(form, errorContainer, csrfToken) {
   const emailInput = form.querySelector('input[name="email"]');
@@ -1348,6 +1407,7 @@ async function handleLoginFormSubmit(form, errorContainer, csrfToken) {
     return;
   }
   
+  const overlay = showLoginFormOverlay(form);
   try {
     const formData = new FormData();
     formData.append('email', email);
@@ -1396,12 +1456,12 @@ async function handleLoginFormSubmit(form, errorContainer, csrfToken) {
           }
         }, 500);
       } else {
-        // Обычный вход
-        if (data && data.redirect_url) {
-          window.location.href = data.redirect_url;
-        } else {
-          window.location.href = '/dashboard/';
+        // Обычный вход — всегда в личный кабинет, не на страницу входа
+        let url = (data && data.redirect_url) ? data.redirect_url : '/dashboard/';
+        if (url.replace(/\/$/, '') === '/login' || url.replace(/\/$/, '') === '/register') {
+          url = '/dashboard/';
         }
+        window.location.href = url;
       }
     } else {
       const data = await response.json().catch(() => null);
@@ -1411,6 +1471,8 @@ async function handleLoginFormSubmit(form, errorContainer, csrfToken) {
     console.error('Ошибка при отправке запроса:', error);
     errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
     errorContainer.style.display = 'block';
+  } finally {
+    hideLoginFormOverlay(overlay);
   }
 }
 
@@ -1449,6 +1511,11 @@ async function handleRegisterFormSubmit(form, errorContainer, csrfToken) {
     return;
   }
   
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
+  
   try {
     const formData = new FormData();
     formData.append('email', email);
@@ -1475,6 +1542,13 @@ async function handleRegisterFormSubmit(form, errorContainer, csrfToken) {
     });
     
     if (response.ok) {
+      // Сервер может вернуть 302 редирект — тогда сессия уже в куках, переходим по URL
+      if (response.redirected && response.url) {
+        closeAllModals();
+        showNotification('Регистрация успешна!', 'success');
+        window.location.href = response.url;
+        return;
+      }
       const data = await response.json().catch(() => null);
       
       // Закрываем модальное окно
@@ -1503,13 +1577,13 @@ async function handleRegisterFormSubmit(form, errorContainer, csrfToken) {
           }
         }, 500);
       } else {
-        // Обычная регистрация
+        // Обычная регистрация — сразу в личный кабинет (уже авторизованным)
         showNotification('Регистрация успешна!', 'success');
-        if (data && data.redirect_url) {
-          window.location.href = data.redirect_url;
-        } else {
-          window.location.href = '/dashboard/';
+        let url = (data && data.redirect_url) ? data.redirect_url : '/dashboard/';
+        if (url.replace(/\/$/, '') === '/login' || url.replace(/\/$/, '') === '/register') {
+          url = '/dashboard/';
         }
+        window.location.href = url;
       }
     } else {
       const data = await response.json().catch(() => null);
@@ -1519,6 +1593,10 @@ async function handleRegisterFormSubmit(form, errorContainer, csrfToken) {
     console.error('Ошибка при отправке запроса:', error);
     errorContainer.textContent = 'Ошибка соединения. Попробуйте еще раз.';
     errorContainer.style.display = 'block';
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
   }
 }
 

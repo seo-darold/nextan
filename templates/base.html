@@ -211,15 +211,12 @@
           <span>или</span>
         </div>
 
-        <div class="modal__social" id="loginModalSocial">
-          <button type="button" class="button button--social button--social-vk" data-vk-auth-in-modal data-vk-auth-modal-type="login">
-            <span>VK ID</span>
+        <div class="modal__social modal__social--row" id="loginModalSocial">
+          <button type="button" class="button button--social button--social-vk button--social-icon" data-vk-auth-in-modal data-vk-auth-modal-type="login" aria-label="Войти через VK">
+            <img src="{% static 'assets/images/vk_icon.png' %}" alt="" width="24" height="24">
           </button>
-          <button type="button" class="button button--social button--social-google">
-            <span>Google</span>
-          </button>
-          <button type="button" class="button button--social button--social-sber">
-            <span>Сбер ID</span>
+          <button type="button" class="button button--social button--social-google button--social-icon" aria-label="Войти через Google">
+            <img src="{% static 'assets/images/google_icon.png' %}" alt="" width="24" height="24">
           </button>
         </div>
       </div>
@@ -306,15 +303,12 @@
           <span>или</span>
         </div>
 
-        <div class="modal__social">
-          <button type="button" class="button button--social button--social-vk" data-vk-auth-in-modal data-vk-auth-modal-type="register">
-            <span>VK ID</span>
+        <div class="modal__social modal__social--row">
+          <button type="button" class="button button--social button--social-vk button--social-icon" data-vk-auth-in-modal data-vk-auth-modal-type="register" aria-label="Войти через VK">
+            <img src="{% static 'assets/images/vk_icon.png' %}" alt="" width="24" height="24">
           </button>
-          <button type="button" class="button button--social button--social-google">
-            <span>Google</span>
-          </button>
-          <button type="button" class="button button--social button--social-sber">
-            <span>Сбер ID</span>
+          <button type="button" class="button button--social button--social-google button--social-icon" aria-label="Войти через Google">
+            <img src="{% static 'assets/images/google_icon.png' %}" alt="" width="24" height="24">
           </button>
         </div>
       </div>

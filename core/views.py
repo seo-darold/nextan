@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import json
 from urllib.parse import quote
@@ -60,7 +61,7 @@ def login_view(request):
             # Переносим корзину из сессии
             merge_cart_on_login(request, user)
             
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
             # Явно сохраняем сессию
             request.session.modified = True
@@ -76,9 +77,13 @@ def login_view(request):
                 messages.error(request, 'Ошибка авторизации. Попробуйте еще раз.')
                 return redirect('content:index')
             
-            # Определяем URL для редиректа
+            # Определяем URL для редиректа — всегда в личный кабинет, не на страницу входа
             next_url = request.POST.get('next') or request.GET.get('next')
             redirect_url = next_url if next_url else reverse('content:dashboard')
+            login_path = reverse('core:login').rstrip('/')
+            register_path = reverse('core:register').rstrip('/')
+            if redirect_url.rstrip('/') in (login_path, register_path):
+                redirect_url = reverse('content:dashboard')
             
             # Если запрос через AJAX, возвращаем JSON
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -160,45 +165,37 @@ def register_view(request):
         if form.is_valid():
             # Создаём пользователя
             user = form.save()
-            
-            # Переносим корзину из сессии
-            merge_cart_on_login(request, user)
-            
-            # Авторизуем пользователя
-            login(request, user)
-            
-            # Явно сохраняем сессию
-            request.session.modified = True
-            request.session.save()
-            
-            # Определяем URL для редиректа
             next_url = request.POST.get('next') or request.GET.get('next')
             redirect_url = next_url if next_url else reverse('content:dashboard')
-            
-            # Если запрос через AJAX, возвращаем JSON
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                response = JsonResponse({
-                    'success': True,
-                    'message': 'Регистрация успешна',
-                    'redirect_url': redirect_url,
-                    'user': {
-                        'email': user.email,
-                        'is_authenticated': True,
-                    }
-                })
-                # Убеждаемся, что сессия сохранится в cookies
-                if request.session.session_key:
-                    response.set_cookie(
-                        'sessionid',
-                        request.session.session_key,
-                        max_age=60*60*24*7,  # 7 дней
-                        httponly=True,
-                        samesite='Lax'
-                    )
-                return response
-            
+            login_path = reverse('core:login').rstrip('/')
+            register_path = reverse('core:register').rstrip('/')
+            if redirect_url.rstrip('/') in (login_path, register_path):
+                redirect_url = reverse('content:dashboard')
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            try:
+                # Переносим корзину из сессии
+                merge_cart_on_login(request, user)
+                # Авторизуем пользователя (ModelBackend — вход по email/паролю)
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                # Явно сохраняем сессию
+                request.session.modified = True
+                request.session.save()
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception('Ошибка после создания пользователя при регистрации')
+                # Пользователь уже создан — для AJAX возвращаем успех, чтобы не показывать ошибку
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Регистрация успешна',
+                        'redirect_url': redirect_url,
+                    })
+                raise
+            # Если запрос через AJAX — редирект 302, чтобы браузер получил Set-Cookie
+            # и при переходе на /dashboard/ уже отправлял сессию (без повторного ввода логина)
+            if is_ajax:
+                return redirect(redirect_url)
             messages.success(request, f'Добро пожаловать, {user.get_full_name() or user.email}! Регистрация успешна.')
-            
             return redirect(redirect_url)
         else:
             # Если запрос через AJAX, возвращаем JSON с ошибками
@@ -352,14 +349,15 @@ def password_reset_confirm_view(request, token):
             
             # Если запрос через AJAX
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                login_url = request.build_absolute_uri(reverse('core:login'))
                 return JsonResponse({
                     'success': True,
                     'message': 'Пароль успешно изменён! Теперь вы можете войти с новым паролем.',
-                    'redirect_url': reverse('content:index')
+                    'redirect_url': login_url
                 })
             
             messages.success(request, 'Пароль успешно изменён! Теперь вы можете войти с новым паролем.')
-            return redirect('content:index')
+            return redirect('core:login')
         else:
             # Если запрос через AJAX
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

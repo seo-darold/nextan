@@ -19,7 +19,7 @@
         <p>{{ vk_error }}</p>
       </div>
       {% endif %}
-      <form class="form form--stacked" method="post" action="{% url 'core:login' %}">
+      <form class="form form--stacked" id="loginForm" method="post" action="{% url 'core:login' %}">
         {% csrf_token %}
         
         {% if form.non_field_errors %}
@@ -59,12 +59,12 @@
         <p class="form__divider">или</p>
         <div class="form__social-buttons">
           {% if google_login_url %}
-          <a href="{{ google_login_url }}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="button button--secondary button--block button--social-google">
-            Войти через Google
+          <a href="{{ google_login_url }}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="button button--secondary button--social button--social-google button--social-icon" aria-label="Войти через Google">
+            <img src="{% static 'assets/images/google_icon.png' %}" alt="" width="24" height="24">
           </a>
           {% endif %}
-          <button type="button" class="button button--secondary button--block button--social button--social-vk" data-modal-open="vk-auth-modal">
-            Войти через VK
+          <button type="button" class="button button--secondary button--social button--social-vk button--social-icon" data-modal-open="vk-auth-modal" aria-label="Войти через VK">
+            <img src="{% static 'assets/images/vk_icon.png' %}" alt="" width="24" height="24">
           </button>
         </div>
       </form>

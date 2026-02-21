@@ -3064,6 +3064,21 @@ a {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
+}
+
+.modal__social--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.form__social-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .button--social {
@@ -3074,6 +3089,20 @@ a {
   text-align: center;
   font-weight: 500;
   transition: border-color 0.2s, background-color 0.2s;
+}
+
+.button--social-icon {
+  padding: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button--social-icon img {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .button--social:hover {
@@ -6342,4 +6371,22 @@ a {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Оверлей со спиннером поверх формы входа (модалка и страница /login/) */
+.form-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.login-card,
+#login-modal-default-content,
+#register-modal-default-content {
+  position: relative;
 }

@@ -146,12 +146,18 @@ async function loadSubscriptionData(subscriptionId) {
         (subscription.cabinet_name.includes('WB') || subscription.cabinet_name.includes('Wildberries') ? ['Wildberries'] : ['OZON']) : 
         [];
       
+      const pricePerMonth = Number(subscription.price_per_month) || 0;
+      const months = Number(subscription.months) || 1;
       currentSubscriptionData = {
         title: subscription.dashboard_title,
         basePrice: basePrice,
         currentMarkets: markets,
         currentCabinets: 1, // Можно улучшить, если будет информация о количестве кабинетов
-        isActive: subscription.status === 'active'
+        status: subscription.status,
+        isActive: subscription.status === 'active',
+        price_per_month: pricePerMonth,
+        months: months,
+        amountToPay: pricePerMonth * months
       };
     }
     
@@ -401,6 +407,55 @@ function setupSaveButton() {
   });
 }
 
+async function paySubscriptionFromBalance(subscriptionId) {
+  const amount = currentSubscriptionData && currentSubscriptionData.amountToPay;
+  const msg = amount
+    ? `Списать с счёта ${amount.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽ за подписку (${currentSubscriptionData.months} мес.)?`
+    : 'Оплатить подписку со счёта?';
+  if (!confirm(msg)) return;
+
+  const payBtn = document.getElementById('paySubscriptionBtn');
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.textContent = 'Оплата…';
+  }
+  try {
+    const response = await fetch(`/api/subscriptions/${subscriptionId}/pay/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      credentials: 'same-origin',
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.success) {
+      if (payBtn) {
+        payBtn.textContent = 'Оплачено';
+        payBtn.classList.remove('button--primary');
+        payBtn.classList.add('button--secondary');
+      }
+      const notice = document.getElementById('subscriptionNotice');
+      if (notice) {
+        notice.textContent = 'Подписка успешно оплачена и активирована.';
+        notice.hidden = false;
+      }
+      setTimeout(() => window.location.reload(), 1200);
+      return;
+    }
+    const errorMsg = data.error || (response.status === 400 ? 'Недостаточно средств на счёте' : 'Ошибка оплаты');
+    alert(errorMsg);
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка сети. Попробуйте позже.');
+  } finally {
+    if (payBtn) {
+      payBtn.disabled = false;
+      payBtn.textContent = 'Оплатить со счёта';
+    }
+  }
+}
+
 async function setupPayButton(subscriptionId) {
   let details;
   
@@ -418,7 +473,11 @@ async function setupPayButton(subscriptionId) {
   // Показываем статус подписки для всех подписок
   const statusBadge = document.getElementById('subscriptionStatusBadge');
   if (statusBadge) {
-    if (details.isActive) {
+    if (details.status === 'pending') {
+      statusBadge.textContent = 'Ожидает оплаты';
+      statusBadge.className = 'subscription-status-badge subscription-status-badge--pending';
+      statusBadge.style.display = 'inline-block';
+    } else if (details.isActive) {
       statusBadge.textContent = 'Активна';
       statusBadge.className = 'subscription-status-badge subscription-status-badge--active';
       statusBadge.style.display = 'inline-block';
@@ -429,38 +488,16 @@ async function setupPayButton(subscriptionId) {
     }
   }
   
-  // Добавляем кнопку "Оплатить" только для неактивных подписок
-  if (details.isActive) {
-    return;
-  }
-  
-  const actionsContainer = document.getElementById('subscriptionActions');
-  if (!actionsContainer) {
-    console.error('subscriptionActions container not found!');
-    return;
-  }
-  
-  // Проверяем, не добавлена ли уже кнопка
-  if (document.getElementById('paySubscriptionBtn')) {
-    return;
-  }
-  
-  // Добавляем кнопку "Оплатить" перед кнопкой "Сохранить"
-  const payButton = document.createElement('button');
-  payButton.id = 'paySubscriptionBtn';
-  payButton.className = 'button button--primary';
-  payButton.textContent = 'Оплатить';
-  payButton.type = 'button';
-  payButton.addEventListener('click', () => {
-    console.log('Переход на страницу оплаты');
-  });
-  
-  // Вставляем перед кнопкой "Сохранить"
-  const saveBtn = document.getElementById('saveOptions');
-  if (saveBtn) {
-    actionsContainer.insertBefore(payButton, saveBtn);
-  } else {
-    actionsContainer.appendChild(payButton);
+  // Показываем кнопку "Оплатить со счёта" только для подписок со статусом «Ожидает оплаты» или неактивных
+  const payButton = document.getElementById('paySubscriptionBtn');
+  if (payButton) {
+    if (details.isActive) {
+      payButton.style.display = 'none';
+    } else {
+      payButton.style.display = '';
+      payButton.textContent = 'Оплатить со счёта';
+      payButton.onclick = () => paySubscriptionFromBalance(subscriptionId);
+    }
   }
 }
 

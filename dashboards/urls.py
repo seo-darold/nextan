@@ -4,6 +4,10 @@ from . import views
 app_name = 'dashboards'
 
 urlpatterns = [
+    # ЮKassa: возврат после оплаты и webhook
+    path('payment/yookassa/return/', views.yookassa_return_view, name='yookassa_return'),
+    path('payment/yookassa/notify/', views.yookassa_webhook_view, name='yookassa_webhook'),
+
     # API для дашбордов
     path('api/dashboards/', views.DashboardListAPIView.as_view(), name='api_dashboard_list'),
     path('api/price/calculate/', views.PriceCalculationAPIView.as_view(), name='api_price_calculate'),
@@ -19,6 +23,7 @@ urlpatterns = [
     
     # API для подписок
     path('api/subscriptions/', views.SubscriptionListAPIView.as_view(), name='api_subscription_list'),
+    path('api/subscriptions/<int:subscription_id>/pay/', views.PaySubscriptionFromBalanceAPIView.as_view(), name='api_subscription_pay'),
     
     # API для платежей
     path('api/payments/', views.PaymentListAPIView.as_view(), name='api_payment_list'),

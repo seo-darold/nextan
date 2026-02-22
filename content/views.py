@@ -144,6 +144,16 @@ class PaymentsView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class BalanceTopUpView(LoginRequiredMixin, TemplateView):
+    """Страница пополнения баланса (оплата через ЮKassa)."""
+    template_name = 'content/balance_topup.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_email'] = self.request.user.email
+        return context
+
+
 class SubscriptionView(LoginRequiredMixin, TemplateView):
     template_name = 'content/subscription.html'
     

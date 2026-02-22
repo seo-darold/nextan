@@ -171,6 +171,7 @@ async function loadSubscriptions() {
         expiryDate: endDate,
         amount: sub.price_per_month,
         status: isActive ? (daysUntil <= 5 ? 'expiring-soon' : 'active') : 'inactive',
+        statusRaw: sub.status,
         isActive: isActive
       };
     });
@@ -293,12 +294,20 @@ function renderSubscriptions(subscriptions) {
     }
     const daysUntil = getDaysUntilExpiry(sub.expiryDate);
     const isSoon = isExpiringSoon(sub.expiryDate) && sub.isActive;
-    
+    let statusBadge = '';
+    if (sub.statusRaw === 'pending') {
+      statusBadge = '<span class="subscription-card__badge subscription-card__badge--pending">Ожидает оплаты</span>';
+    } else if (sub.isActive && isSoon) {
+      statusBadge = '<span class="subscription-card__badge">Истекает скоро</span>';
+    } else if (sub.isActive) {
+      statusBadge = '<span class="subscription-card__badge subscription-card__badge--active">Активна</span>';
+    } else {
+      statusBadge = '<span class="subscription-card__badge subscription-card__badge--inactive">Неактивна</span>';
+    }
     card.innerHTML = `
       <div class="subscription-card__header">
         <h3 class="subscription-card__title">${sub.title}</h3>
-        ${isSoon ? '<span class="subscription-card__badge">Истекает скоро</span>' : ''}
-        ${!sub.isActive ? '<span class="subscription-card__badge subscription-card__badge--inactive">Неактивна</span>' : ''}
+        ${statusBadge}
       </div>
       <div class="subscription-card__options">
         <span class="subscription-card__label">Подключенные опции:</span>
@@ -322,7 +331,7 @@ function renderSubscriptions(subscriptions) {
         ${sub.isActive 
           ? `<a href="/subscription/?id=${sub.id}" class="button button--primary button--block">Управлять</a>`
           : `<a href="/subscription/?id=${sub.id}" class="button button--secondary subscription-card__manage-btn">Управлять</a>
-             <button class="button button--primary subscription-card__pay-btn" onclick="console.log('Переход на страницу оплаты')">Оплатить</button>`
+             <a href="/subscription/?id=${sub.id}" class="button button--primary subscription-card__pay-btn">Оплатить</a>`
         }
       </div>
     `;

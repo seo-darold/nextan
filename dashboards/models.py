@@ -204,6 +204,7 @@ class Cabinet(models.Model):
 class Subscription(models.Model):
     """Подписка на дашборд для кабинета"""
     STATUS_CHOICES = [
+        ('pending', 'Ожидает оплаты'),
         ('active', 'Активна'),
         ('expired', 'Истекла'),
         ('suspended', 'Приостановлена'),

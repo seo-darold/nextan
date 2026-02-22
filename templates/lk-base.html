@@ -67,10 +67,10 @@
               <div class="header__balance-menu" aria-hidden="true">
                 <ul class="header__balance-menu-list">
                   <li class="header__balance-menu-item">
-                    <a href="#" class="header__balance-menu-link">Пополнить баланс</a>
+                    <a href="{% url 'content:balance_topup' %}" class="header__balance-menu-link">Пополнить баланс</a>
                   </li>
                   <li class="header__balance-menu-item">
-                    <a href="#" class="header__balance-menu-link">История пополнений</a>
+                    <a href="{% url 'content:payments' %}" class="header__balance-menu-link">История пополнений</a>
                   </li>
                 </ul>
               </div>
@@ -109,6 +109,11 @@
           <li class="dashboard-nav__item">
             <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'payments' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:payments' %}">
               <span>Платежи</span>
+            </a>
+          </li>
+          <li class="dashboard-nav__item">
+            <a class="dashboard-nav__link {% if request.resolver_match.url_name == 'balance_topup' %}dashboard-nav__link--active{% endif %}" href="{% url 'content:balance_topup' %}">
+              <span>Пополнение баланса</span>
             </a>
           </li>
           <li class="dashboard-nav__item">
@@ -190,6 +195,15 @@
     </aside>
 
     <div class="dashboard-content">
+      {% if messages %}
+        <div class="dashboard-messages" role="status">
+          {% for message in messages %}
+            <div class="dashboard-message dashboard-message--{{ message.tags }}" aria-live="polite">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% block dashboard_content %}{% endblock %}
     </div>
   </div>

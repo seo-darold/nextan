@@ -340,11 +340,11 @@ class CheckoutAPIView(APIView):
                         # Цена за один кабинет = общая цена / количество кабинетов
                         price_per_cabinet = cart_item.price_per_month / cart_item.cabinets_count
                         
-                        # Создаём подписку
+                        # Создаём подписку (до оплаты — статус «Ожидает оплаты»)
                         subscription = Subscription.objects.create(
                             cabinet=cabinet,
                             dashboard=cart_item.dashboard,
-                            status='active',
+                            status='pending',
                             price_per_month=price_per_cabinet,
                             months=cart_item.months,
                             start_date=start_date,

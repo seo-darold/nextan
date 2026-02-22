@@ -1,0 +1,114 @@
+{% extends 'lk-base.html' %}
+{% load static %}
+
+{% block title %}Пополнение баланса — НекстАналитика{% endblock %}
+
+{% block dashboard_content %}
+  <div id="userEmail" data-user-email="{{ user_email }}" style="display: none;"></div>
+  <section class="section page-hero">
+    <p class="page-hero__kicker">Баланс</p>
+    <h1 class="page-hero__title">Пополнение счёта</h1>
+    <p class="page-hero__subtitle">Укажите сумму — вы будете перенаправлены на безопасную страницу оплаты ЮKassa</p>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2 class="section-heading__title">Сумма пополнения</h2>
+      <p class="section-heading__description">Выберите быструю сумму или введите свою</p>
+    </div>
+
+    <form class="account-form form form--stacked" id="balanceTopUpForm">
+      <div class="account-form__section">
+        <div class="balance-topup-amounts" role="group" aria-label="Быстрый выбор суммы">
+          <button type="button" class="button button--secondary balance-topup-btn" data-amount="500">500 ₽</button>
+          <button type="button" class="button button--secondary balance-topup-btn" data-amount="1000">1 000 ₽</button>
+          <button type="button" class="button button--secondary balance-topup-btn" data-amount="2000">2 000 ₽</button>
+          <button type="button" class="button button--secondary balance-topup-btn" data-amount="5000">5 000 ₽</button>
+        </div>
+        <label class="form__field">
+          <span>Сумма, ₽</span>
+          <input type="number" name="amount" id="balanceTopUpAmount" class="form__field" min="1" step="0.01" placeholder="Введите сумму" required>
+        </label>
+        <div class="form__field-error" id="balanceTopUpError" role="alert" style="display: none;"></div>
+      </div>
+      <div class="account-form__actions">
+        <button type="submit" class="button button--primary" id="balanceTopUpSubmit">Пополнить счёт</button>
+        <a href="{% url 'content:payments' %}" class="button button--secondary">История платежей</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+  (function() {
+    function getCsrfToken() {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var parts = cookies[i].trim().split('=');
+        if (parts[0] === 'csrftoken') return parts[1] || '';
+      }
+      return '';
+    }
+
+    var form = document.getElementById('balanceTopUpForm');
+    var amountInput = document.getElementById('balanceTopUpAmount');
+    var errorEl = document.getElementById('balanceTopUpError');
+    var submitBtn = document.getElementById('balanceTopUpSubmit');
+
+    document.querySelectorAll('.balance-topup-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var amount = this.getAttribute('data-amount');
+        amountInput.value = amount;
+        errorEl.style.display = 'none';
+      });
+    });
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var amount = amountInput.value && parseFloat(amountInput.value);
+      if (!amount || amount < 0.01) {
+        errorEl.textContent = 'Введите сумму не менее 0,01 ₽';
+        errorEl.style.display = 'block';
+        return;
+      }
+      errorEl.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Создание платежа…';
+
+      fetch('/api/balance/topup/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ amount: amount })
+      })
+        .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+        .then(function(result) {
+          if (result.ok && result.data.confirmation_url) {
+            window.location.href = result.data.confirmation_url;
+            return;
+          }
+          if (result.ok && !result.data.confirmation_url) {
+            // Демо-режим: платёж уже завершён
+            alert(result.data.message || 'Счёт пополнен.');
+            window.location.href = '{% url "content:payments" %}';
+            return;
+          }
+          errorEl.textContent = result.data.error || 'Ошибка при создании платежа';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Пополнить счёт';
+        })
+        .catch(function() {
+          errorEl.textContent = 'Ошибка сети. Попробуйте позже.';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Пополнить счёт';
+        });
+    });
+  })();
+  </script>
+{% endblock %}

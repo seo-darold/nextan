@@ -237,3 +237,11 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'seo-darold@yandex.ru'
 EMAIL_HOST_PASSWORD = 'jvleedssuyzhmsjz'
 DEFAULT_FROM_EMAIL = 'seo-darold@yandex.ru'  # Должен совпадать с EMAIL_HOST_USER для Яндекса
+
+# ЮKassa (Яндекс.Касса): пополнение баланса
+# В .env задайте YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY из личного кабинета ЮKassa
+# В ЛК ЮKassa укажите URL уведомлений: https://ваш-домен/payment/yookassa/notify/
+YOOKASSA_SHOP_ID = os.environ.get('YOOKASSA_SHOP_ID', '').strip()
+YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', '').strip()
+# URL возврата после оплаты (без домена — подставится request.build_absolute_uri)
+YOOKASSA_RETURN_PATH = '/payment/yookassa/return/'

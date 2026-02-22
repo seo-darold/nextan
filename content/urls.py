@@ -17,6 +17,7 @@ urlpatterns = [
     path('cabinet/cabinet-detail/', views.CabinetDetailView.as_view(), name='cabinet_detail'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     path('payments/', views.PaymentsView.as_view(), name='payments'),
+    path('balance-topup/', views.BalanceTopUpView.as_view(), name='balance_topup'),
     path('subscription/', views.SubscriptionView.as_view(), name='subscription'),
     path('support/', views.SupportView.as_view(), name='support'),
     path('support/support-ticket/', views.SupportTicketView.as_view(), name='support_ticket'),

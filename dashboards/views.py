@@ -1,19 +1,32 @@
+import json
+import logging
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.utils.html import escape
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import redirect
+from django.db import transaction
+from django.db.models import F
 from datetime import timedelta
 from decimal import Decimal
+
 from .models import (
     Dashboard, Marketplace, Cabinet, Subscription, Payment,
     Ticket, TicketMessage, PersonalData, AccountBalance
 )
 from .utils import calculate_price_with_discounts
+
+logger = logging.getLogger(__name__)
 
 
 class DashboardListAPIView(APIView):
@@ -199,21 +212,38 @@ class AccountBalanceAPIView(APIView):
         })
 
 
+def _complete_balance_topup_payment(payment):
+    """Завершить платёж пополнения: обновить баланс и статус. Вызывать при успешной оплате в ЮKassa."""
+    if payment.status == 'completed':
+        return
+    if payment.payment_type != 'balance_topup':
+        return
+    balance_obj, _ = AccountBalance.objects.get_or_create(
+        user=payment.user,
+        defaults={'balance': Decimal('0.00')}
+    )
+    balance_obj.balance += payment.amount
+    balance_obj.save()
+    payment.status = 'completed'
+    payment.payment_method = 'yookassa'
+    payment.save(update_fields=['status', 'payment_method', 'updated_at'])
+
+
 @method_decorator(login_required, name='dispatch')
 class BalanceTopUpAPIView(APIView):
-    """API для пополнения счёта"""
+    """API для пополнения счёта через ЮKassa"""
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
-        """Создать запрос на пополнение счёта"""
+        """Создать платёж в ЮKassa и вернуть URL для перехода на оплату"""
         amount = request.data.get('amount')
-        
+
         if not amount:
             return Response(
                 {'error': 'Укажите сумму пополнения'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             amount = Decimal(str(amount))
             if amount <= 0:
@@ -221,13 +251,18 @@ class BalanceTopUpAPIView(APIView):
                     {'error': 'Сумма должна быть больше нуля'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            # ЮKassa: минимум 1 руб., для тестов можно меньше — проверяем 0.01
+            if amount < Decimal('0.01'):
+                return Response(
+                    {'error': 'Минимальная сумма 0.01 руб.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         except (ValueError, TypeError):
             return Response(
                 {'error': 'Неверный формат суммы'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Создаём платеж на пополнение
+
         payment = Payment.objects.create(
             user=request.user,
             payment_type='balance_topup',
@@ -235,26 +270,155 @@ class BalanceTopUpAPIView(APIView):
             status='pending',
             description=f'Пополнение счёта на {amount} руб.'
         )
-        
-        # В реальном приложении здесь должна быть интеграция с платёжной системой
-        # Для демо просто сразу завершаем платеж
-        payment.status = 'completed'
-        payment.save()
-        
-        # Обновляем баланс
-        balance_obj, created = AccountBalance.objects.get_or_create(
-            user=request.user,
-            defaults={'balance': Decimal('0.00')}
-        )
-        balance_obj.balance += amount
-        balance_obj.save()
-        
-        return Response({
-            'success': True,
-            'payment_id': payment.id,
-            'new_balance': float(balance_obj.balance),
-            'message': 'Счёт успешно пополнен'
-        })
+
+        shop_id = getattr(django_settings, 'YOOKASSA_SHOP_ID', '') or ''
+        secret_key = getattr(django_settings, 'YOOKASSA_SECRET_KEY', '') or ''
+
+        if not shop_id or not secret_key:
+            # Режим без ЮKassa: сразу завершаем (для разработки)
+            payment.payment_method = 'demo'
+            payment.save(update_fields=['payment_method'])
+            _complete_balance_topup_payment(payment)
+            balance_obj = AccountBalance.objects.get(user=request.user)
+            return Response({
+                'success': True,
+                'payment_id': payment.id,
+                'new_balance': float(balance_obj.balance),
+                'message': 'Счёт успешно пополнен (демо)',
+                'confirmation_url': None,
+            })
+
+        try:
+            from yookassa import Configuration, Payment as YooPayment
+
+            Configuration.configure(shop_id, secret_key)
+            return_path = getattr(django_settings, 'YOOKASSA_RETURN_PATH', '/payment/yookassa/return/')
+            return_url = request.build_absolute_uri(return_path + f'?payment_id={payment.id}')
+
+            idempotence_key = f'balance_topup_{payment.id}_{payment.created_at.timestamp()}'
+            yoo_payload = {
+                'amount': {
+                    'value': f'{amount:.2f}',
+                    'currency': 'RUB',
+                },
+                'capture': True,
+                'confirmation': {
+                    'type': 'redirect',
+                    'return_url': return_url,
+                },
+                'description': payment.description,
+                'metadata': {
+                    'payment_id': str(payment.id),
+                },
+            }
+            # SDK: create(idempotence_key, payload) — первый аргумент ключ идемпотентности
+            try:
+                yoo_response = YooPayment.create(idempotence_key, yoo_payload)
+            except TypeError:
+                # На случай другого порядка аргументов в версии SDK
+                yoo_response = YooPayment.create(yoo_payload, idempotence_key)
+
+            # Поддержка и объекта, и словаря ответа SDK
+            confirmation_url = None
+            conf = getattr(yoo_response, 'confirmation', None) or (yoo_response.get('confirmation') if isinstance(yoo_response, dict) else None)
+            if conf is not None:
+                confirmation_url = getattr(conf, 'confirmation_url', None) or (conf.get('confirmation_url') if isinstance(conf, dict) else None)
+            if not confirmation_url:
+                confirmation_url = getattr(yoo_response, 'confirmation_url', None)
+
+            yoo_id = getattr(yoo_response, 'id', None) or (yoo_response.get('id') if isinstance(yoo_response, dict) else None)
+            if yoo_id:
+                payment.transaction_id = str(yoo_id)
+                payment.save(update_fields=['transaction_id'])
+
+            if not confirmation_url:
+                logger.warning('YooKassa did not return confirmation_url: %s', yoo_response)
+                return Response(
+                    {'error': 'Не удалось создать платёж. Попробуйте позже.'},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+
+            return Response({
+                'success': True,
+                'payment_id': payment.id,
+                'confirmation_url': confirmation_url,
+                'message': 'Перейдите по ссылке для оплаты',
+            })
+        except Exception as e:
+            logger.exception('YooKassa create payment failed: %s', e)
+            err_msg = 'Ошибка платёжной системы. Попробуйте позже.'
+            err_str = str(e).lower()
+            if 'invalid_credentials' in err_str or 'unauthorized' in type(e).__name__.lower():
+                err_msg = (
+                    'Неверный идентификатор магазина или секретный ключ ЮKassa. '
+                    'Проверьте в личном кабинете https://yookassa.ru/my: выберите магазин (Shop ID), '
+                    'в Настройках → Ключи API скопируйте актуальный секретный ключ (при необходимости выпустите новый). '
+                    'Обновите YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY в .env и перезапустите приложение.'
+                )
+            elif django_settings.DEBUG:
+                err_msg = f'{err_msg} ({type(e).__name__}: {e})'
+            return Response(
+                {'error': err_msg},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+
+@login_required
+@require_GET
+def yookassa_return_view(request):
+    """Возврат пользователя после оплаты на ЮKassa: редирект на страницу платежей, опционально с сообщением."""
+    from django.urls import reverse
+    from django.contrib import messages
+    payment_id = request.GET.get('payment_id')
+    if payment_id:
+        try:
+            payment = Payment.objects.get(id=int(payment_id), user=request.user)
+            if payment.status == 'completed':
+                messages.success(request, f'Платёж на {payment.amount} ₽ успешно зачислен на баланс.')
+            else:
+                messages.info(request, 'Платёж в обработке. Баланс обновится после подтверждения.')
+        except (Payment.DoesNotExist, ValueError):
+            pass
+    return redirect(reverse('content:payments'))
+
+
+@csrf_exempt
+@require_POST
+def yookassa_webhook_view(request):
+    """Обработчик уведомлений ЮKassa (payment.succeeded и др.): завершаем платёж и пополняем баланс."""
+    shop_id = getattr(django_settings, 'YOOKASSA_SHOP_ID', '') or ''
+    secret_key = getattr(django_settings, 'YOOKASSA_SECRET_KEY', '') or ''
+    if not shop_id or not secret_key:
+        return HttpResponse(status=200)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except (ValueError, TypeError):
+        return HttpResponse(status=400)
+
+    event = body.get('event')
+    payment_data = body.get('object', {})
+    if event != 'payment.succeeded' or not payment_data:
+        return HttpResponse(status=200)
+
+    yoo_id = payment_data.get('id')
+    status_val = payment_data.get('status')
+    if status_val != 'succeeded' or not yoo_id:
+        return HttpResponse(status=200)
+
+    # Находим наш платёж по transaction_id (id в ЮKassa)
+    payment = Payment.objects.filter(
+        transaction_id=str(yoo_id),
+        payment_type='balance_topup',
+        status='pending',
+    ).first()
+    if not payment:
+        logger.warning('YooKassa webhook: payment not found for yoo_id=%s', yoo_id)
+        return HttpResponse(status=200)
+
+    _complete_balance_topup_payment(payment)
+    logger.info('YooKassa webhook: completed payment id=%s (yoo_id=%s)', payment.id, yoo_id)
+    return HttpResponse(status=200)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -329,7 +493,7 @@ class CabinetDetailAPIView(APIView):
                 {'error': 'Кабинет не найден'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+        _expire_subscriptions_for_user(request.user)
         subscriptions = cabinet.subscriptions.all()
         subscriptions_data = [{
             'id': sub.id,
@@ -387,6 +551,17 @@ class CabinetDetailAPIView(APIView):
             )
 
 
+def _expire_subscriptions_for_user(user):
+    """Перевести активные подписки с истёкшим периодом в статус «Ожидает оплаты»."""
+    cabinets = Cabinet.objects.filter(user=user)
+    subs = Subscription.objects.filter(
+        cabinet__in=cabinets,
+        status='active',
+        end_date__lt=timezone.now()
+    )
+    subs.update(status='pending')
+
+
 @method_decorator(login_required, name='dispatch')
 class SubscriptionListAPIView(APIView):
     """API для работы с подписками"""
@@ -394,6 +569,7 @@ class SubscriptionListAPIView(APIView):
     
     def get(self, request):
         """Получить список подписок пользователя"""
+        _expire_subscriptions_for_user(request.user)
         cabinets = Cabinet.objects.filter(user=request.user)
         subscriptions = Subscription.objects.filter(cabinet__in=cabinets)
         
@@ -412,6 +588,93 @@ class SubscriptionListAPIView(APIView):
             'auto_renewal': sub.auto_renewal,
         } for sub in subscriptions]
         return Response(data)
+
+
+@method_decorator(login_required, name='dispatch')
+class PaySubscriptionFromBalanceAPIView(APIView):
+    """Оплата подписки со счёта. Активирует подписку и задаёт период с даты оплаты."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, subscription_id):
+        try:
+            subscription = Subscription.objects.select_related('cabinet').get(
+                id=subscription_id,
+                cabinet__user=request.user
+            )
+        except Subscription.DoesNotExist:
+            return Response(
+                {'error': 'Подписка не найдена'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        if subscription.status != 'pending':
+            return Response(
+                {'error': 'Оплатить можно только подписку со статусом «Ожидает оплаты»'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        amount = subscription.price_per_month * subscription.months
+        if amount <= 0:
+            return Response(
+                {'error': 'Некорректная сумма подписки'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        balance_obj, _ = AccountBalance.objects.get_or_create(
+            user=request.user,
+            defaults={'balance': Decimal('0.00')}
+        )
+        if balance_obj.balance < amount:
+            return Response(
+                {
+                    'error': 'Недостаточно средств на счёте',
+                    'required': float(amount),
+                    'balance': float(balance_obj.balance),
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        now = timezone.now()
+        start_date = now
+        end_date = now + timedelta(days=30 * subscription.months)
+        try:
+            with transaction.atomic():
+                updated = AccountBalance.objects.filter(
+                    user=request.user,
+                    balance__gte=amount
+                ).update(balance=F('balance') - amount)
+                if updated == 0:
+                    return Response(
+                        {'error': 'Недостаточно средств на счёте'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                Payment.objects.create(
+                    user=request.user,
+                    payment_type='subscription',
+                    subscription=subscription,
+                    amount=amount,
+                    status='completed',
+                    payment_method='balance',
+                    description=f'Оплата подписки: {subscription.dashboard.title}, {subscription.months} мес.',
+                )
+                subscription.status = 'active'
+                subscription.start_date = start_date
+                subscription.end_date = end_date
+                subscription.save(update_fields=['status', 'start_date', 'end_date', 'updated_at'])
+        except Exception as e:
+            logger.exception('Pay subscription from balance failed: %s', e)
+            return Response(
+                {'error': f'Ошибка списания: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return Response({
+            'success': True,
+            'message': 'Подписка успешно оплачена и активирована',
+            'subscription': {
+                'id': subscription.id,
+                'status': subscription.status,
+                'status_display': subscription.get_status_display(),
+                'start_date': subscription.start_date.isoformat(),
+                'end_date': subscription.end_date.isoformat(),
+            },
+            'new_balance': float(AccountBalance.objects.get(user=request.user).balance),
+        })
 
 
 @method_decorator(login_required, name='dispatch')

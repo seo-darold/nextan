@@ -216,4 +216,63 @@
   </div>
 {% endblock %}
 
-{% block modals %}{% endblock %}
+{% block modals %}
+  <!-- Диалог выбора формата выгрузки (CSV / Excel) -->
+  <div id="exportFormatModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="exportFormatModalTitle" aria-modal="true">
+    <div class="modal__overlay" data-export-close></div>
+    <div class="modal__content">
+      <button type="button" class="modal__close" aria-label="Закрыть" data-export-close>
+        <i class="fa-solid fa-times"></i>
+      </button>
+      <h2 id="exportFormatModalTitle" class="modal__title">Выберите формат выгрузки</h2>
+      <p class="modal__subtitle" style="margin-bottom: 24px;">В каком формате сохранить данные?</p>
+      <div class="modal__actions modal__actions--row">
+        <button type="button" class="button button--secondary" data-export-format="csv">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>CSV</span>
+        </button>
+        <button type="button" class="button button--primary" data-export-format="xlsx">
+          <i class="fa-solid fa-file-excel"></i>
+          <span>Excel</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function() {
+      var modal = document.getElementById('exportFormatModal');
+      if (!modal) return;
+      var callbacks = null;
+
+      window.showExportFormatDialog = function(options) {
+        callbacks = options;
+        modal.setAttribute('aria-hidden', 'false');
+      };
+
+      function closeModal() {
+        modal.setAttribute('aria-hidden', 'true');
+        callbacks = null;
+      }
+
+      function runExport(format) {
+        if (callbacks && callbacks[format]) {
+          callbacks[format]();
+        }
+        closeModal();
+      }
+
+      modal.querySelectorAll('[data-export-close]').forEach(function(el) {
+        el.addEventListener('click', closeModal);
+      });
+      modal.querySelectorAll('[data-export-format]').forEach(function(el) {
+        el.addEventListener('click', function() {
+          runExport(this.getAttribute('data-export-format'));
+        });
+      });
+      modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+      });
+    })();
+  </script>
+{% endblock %}

@@ -30,103 +30,203 @@ function generateSubscriptionsData() {
   return [
     {
       id: '1',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Продажи и финансы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', 'OZON', '2 кабинета'],
       markets: ['Wildberries', 'OZON'],
       expiryDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000), // через 3 дня
       amount: 36000,
+      price_per_month: 36000,
       status: 'expiring-soon',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '2',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Оптимизатор рекламы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', '1 кабинет'],
       markets: ['Wildberries'],
-      expiryDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000), // через 5 дней
+      expiryDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
       amount: 15000,
+      price_per_month: 15000,
       status: 'expiring-soon',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '3',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Логистика и склады',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['OZON', '2 кабинета'],
       markets: ['OZON'],
-      expiryDate: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000), // через 15 дней
+      expiryDate: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000),
       amount: 24000,
+      price_per_month: 24000,
       status: 'active',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '4',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Продажи и финансы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', 'OZON', '1 кабинет'],
       markets: ['Wildberries', 'OZON'],
-      expiryDate: new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000), // через 25 дней
+      expiryDate: new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000),
       amount: 18000,
+      price_per_month: 18000,
       status: 'active',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '5',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Оптимизатор рекламы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['OZON', '2 кабинета'],
       markets: ['OZON'],
-      expiryDate: new Date(today.getTime() + 35 * 24 * 60 * 60 * 1000), // через 35 дней
+      expiryDate: new Date(today.getTime() + 35 * 24 * 60 * 60 * 1000),
       amount: 30000,
+      price_per_month: 30000,
       status: 'active',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '6',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Логистика и склады',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', '1 кабинет'],
       markets: ['Wildberries'],
-      expiryDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000), // через 45 дней
+      expiryDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000),
       amount: 12000,
+      price_per_month: 12000,
       status: 'active',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     },
     {
       id: '7',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Продажи и финансы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', '1 кабинет'],
       markets: ['Wildberries'],
-      expiryDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000), // истекла 5 дней назад
+      expiryDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000),
       amount: 18000,
+      price_per_month: 18000,
       status: 'inactive',
-      isActive: false
+      statusRaw: 'expired',
+      status_display: 'Истекла',
+      isActive: false,
+      auto_renewal: false
     },
     {
       id: '8',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Оптимизатор рекламы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', 'OZON', '2 кабинета'],
       markets: ['Wildberries', 'OZON'],
-      expiryDate: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000), // истекла 10 дней назад
+      expiryDate: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000),
       amount: 30000,
+      price_per_month: 30000,
       status: 'inactive',
-      isActive: false
+      statusRaw: 'expired',
+      status_display: 'Истекла',
+      isActive: false,
+      auto_renewal: false
     },
     {
       id: '9',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Логистика и склады',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['OZON', '1 кабинет'],
       markets: ['OZON'],
-      expiryDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000), // истекла 15 дней назад
+      expiryDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000),
       amount: 12000,
+      price_per_month: 12000,
       status: 'inactive',
-      isActive: false
+      statusRaw: 'expired',
+      status_display: 'Истекла',
+      isActive: false,
+      auto_renewal: false
     },
     {
       id: '10',
+      cabinet_id: null,
+      cabinet_name: '',
+      dashboard_id: null,
       title: 'Продажи и финансы',
+      months: 1,
+      start_date: null,
+      end_date: null,
       options: ['Wildberries', 'OZON', '2 кабинета'],
       markets: ['Wildberries', 'OZON'],
-      expiryDate: new Date(today.getTime() + 85 * 24 * 60 * 60 * 1000), // через 85 дней
+      expiryDate: new Date(today.getTime() + 85 * 24 * 60 * 60 * 1000),
       amount: 36000,
+      price_per_month: 36000,
       status: 'active',
-      isActive: true
+      statusRaw: 'active',
+      status_display: 'Активна',
+      isActive: true,
+      auto_renewal: false
     }
   ];
 }
@@ -165,14 +265,23 @@ async function loadSubscriptions() {
       
       return {
         id: String(sub.id),
+        cabinet_id: sub.cabinet_id,
+        cabinet_name: sub.cabinet_name || '',
+        dashboard_id: sub.dashboard_id,
         title: sub.dashboard_title,
+        months: sub.months,
+        start_date: sub.start_date,
+        end_date: sub.end_date,
+        expiryDate: endDate,
         options: options,
         markets: markets,
-        expiryDate: endDate,
         amount: sub.price_per_month,
+        price_per_month: sub.price_per_month,
         status: isActive ? (daysUntil <= 5 ? 'expiring-soon' : 'active') : 'inactive',
         statusRaw: sub.status,
-        isActive: isActive
+        status_display: sub.status_display || sub.status,
+        isActive: isActive,
+        auto_renewal: sub.auto_renewal
       };
     });
     
@@ -400,13 +509,110 @@ function setupFilter() {
   applyFilters();
 }
 
+/** Экранирование значения для CSV. Заключаем в кавычки при запятой, точке с запятой (чтобы Excel в русской локали не разбивал ячейку), переводах строки и кавычках. */
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (/[",;\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+/** Выгрузка подписок в CSV с учётом текущих фильтров и всех полей */
+function exportSubscriptionsToCsv() {
+  const { filtered, columns, formatCell } = getSubscriptionsExportData();
+  if (filtered.length === 0) {
+    alert('Нет данных для выгрузки.');
+    return;
+  }
+  const headerRow = columns.map(c => escapeCsvCell(c.label)).join(',');
+  const dataRows = filtered.map(sub =>
+    columns.map(c => escapeCsvCell(formatCell(sub, c))).join(',')
+  );
+  const csv = '\uFEFF' + headerRow + '\r\n' + dataRows.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'subscriptions_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Общие колонки и форматтер для подписок (для CSV и Excel) */
+function getSubscriptionsExportData() {
+  const statusFilter = document.getElementById('subscriptionsStatusFilter');
+  const marketFilter = document.getElementById('subscriptionsMarketFilter');
+  const currentStatus = statusFilter ? statusFilter.value : 'all';
+  const currentMarket = marketFilter ? marketFilter.value : 'all';
+  const filtered = filterSubscriptions(subscriptionsData, currentStatus, currentMarket);
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'cabinet_id', label: 'ID кабинета' },
+    { key: 'cabinet_name', label: 'Кабинет' },
+    { key: 'dashboard_id', label: 'ID дашборда' },
+    { key: 'title', label: 'Название дашборда' },
+    { key: 'months', label: 'Месяцев' },
+    { key: 'start_date', label: 'Дата начала' },
+    { key: 'end_date', label: 'Дата окончания' },
+    { key: 'expiryDate', label: 'Дата окончания (отображение)' },
+    { key: 'options', label: 'Подключенные опции' },
+    { key: 'markets', label: 'Маркетплейсы' },
+    { key: 'price_per_month', label: 'Сумма (₽/мес)' },
+    { key: 'amount', label: 'Сумма' },
+    { key: 'status', label: 'Статус' },
+    { key: 'statusRaw', label: 'Статус (код)' },
+    { key: 'status_display', label: 'Статус (отображение)' },
+    { key: 'isActive', label: 'Активна' },
+    { key: 'auto_renewal', label: 'Автопродление' }
+  ];
+  const formatCell = (sub, col) => {
+    let val = sub[col.key];
+    if (val === null || val === undefined) return '';
+    if (col.key === 'expiryDate' && val instanceof Date) {
+      return val.toISOString ? val.toISOString().slice(0, 10) : String(val);
+    }
+    if (Array.isArray(val)) return val.join('; ');
+    if (typeof val === 'boolean') return val ? 'Да' : 'Нет';
+    return val;
+  };
+  return { filtered, columns, formatCell };
+}
+
+/** Выгрузка подписок в Excel (.xlsx) */
+function exportSubscriptionsToExcel() {
+  const { filtered, columns, formatCell } = getSubscriptionsExportData();
+  if (filtered.length === 0) {
+    alert('Нет данных для выгрузки.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('Библиотека Excel недоступна. Выгрузите в CSV.');
+    return;
+  }
+  const headerRow = columns.map(c => c.label);
+  const dataRows = filtered.map(sub => columns.map(c => formatCell(sub, c)));
+  const aoa = [headerRow].concat(dataRows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Подписки');
+  XLSX.writeFile(wb, 'subscriptions_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
 function setupExport() {
   const exportBtn = document.getElementById('exportSubscriptions');
   if (!exportBtn) return;
 
   exportBtn.addEventListener('click', () => {
-    // В прототипе просто показываем сообщение
-    console.log('Функция выгрузки в CSV/Excel будет реализована в полной версии');
+    if (typeof showExportFormatDialog !== 'function') {
+      exportSubscriptionsToCsv();
+      return;
+    }
+    showExportFormatDialog({
+      csv: exportSubscriptionsToCsv,
+      xlsx: exportSubscriptionsToExcel
+    });
   });
 }
 

@@ -42,12 +42,19 @@ async function loadPayments() {
 
     const data = await response.json();
     paymentsData = data.map(payment => ({
-      date: new Date(payment.created_at),
+      id: payment.id,
+      payment_type: payment.payment_type,
+      payment_type_display: payment.payment_type_display,
       amount: payment.amount,
+      status: payment.status === 'completed' ? 'paid' : payment.status,
+      status_display: payment.status_display,
+      payment_method: payment.payment_method || '',
+      description: payment.description || '',
+      created_at: payment.created_at,
+      subscription_id: payment.subscription_id,
+      date: new Date(payment.created_at),
       tool: payment.description || payment.payment_type_display,
       period: payment.subscription_id ? 'Подписка' : 'Пополнение счёта',
-      status: payment.status === 'completed' ? 'paid' : payment.status,
-      payment_type: payment.payment_type,
     }));
     
     hideLoading();
@@ -332,13 +339,106 @@ function setupFilter() {
   }
 }
 
+/** Экранирование значения для CSV (в т.ч. точка с запятой — чтобы Excel в русской локали не разбивал ячейку). */
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (/[",;\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+/** Общие колонки и данные для выгрузки платежей (CSV и Excel) */
+function getPaymentsExportData() {
+  const periodFilter = document.getElementById('paymentsPeriodFilter');
+  const dateFrom = document.getElementById('dateFrom');
+  const dateTo = document.getElementById('dateTo');
+  const filterState = {
+    period: periodFilter ? periodFilter.value : 'all',
+    dateFrom: dateFrom && dateFrom.value ? dateFrom.value : null,
+    dateTo: dateTo && dateTo.value ? dateTo.value : null
+  };
+  if (filterState.dateFrom && filterState.dateTo) {
+    filterState.period = 'custom';
+  }
+  const filtered = filterPayments(paymentsData, filterState);
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'created_at', label: 'Дата и время' },
+    { key: 'amount', label: 'Сумма (₽)' },
+    { key: 'payment_type', label: 'Тип платежа (код)' },
+    { key: 'payment_type_display', label: 'Тип платежа' },
+    { key: 'status', label: 'Статус (код)' },
+    { key: 'status_display', label: 'Статус' },
+    { key: 'payment_method', label: 'Способ оплаты' },
+    { key: 'description', label: 'Описание' },
+    { key: 'subscription_id', label: 'ID подписки' },
+    { key: 'period', label: 'Период/назначение' },
+    { key: 'tool', label: 'Инструмент/описание' }
+  ];
+  const formatCell = (row, col) => {
+    const val = row[col.key];
+    if (val === null || val === undefined) return '';
+    return val;
+  };
+  return { filtered, columns, formatCell };
+}
+
+/** Выгрузка платежей в CSV с учётом текущего фильтра и всех полей */
+function exportPaymentsToCsv() {
+  const { filtered, columns, formatCell } = getPaymentsExportData();
+  if (!filtered || filtered.length === 0) {
+    alert('Нет данных для выгрузки.');
+    return;
+  }
+  const headerRow = columns.map(c => escapeCsvCell(c.label)).join(',');
+  const dataRows = filtered.map(row =>
+    columns.map(c => escapeCsvCell(formatCell(row, c))).join(',')
+  );
+  const csv = '\uFEFF' + headerRow + '\r\n' + dataRows.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'payments_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Выгрузка платежей в Excel (.xlsx) */
+function exportPaymentsToExcel() {
+  const { filtered, columns, formatCell } = getPaymentsExportData();
+  if (!filtered || filtered.length === 0) {
+    alert('Нет данных для выгрузки.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('Библиотека Excel недоступна. Выгрузите в CSV.');
+    return;
+  }
+  const headerRow = columns.map(c => c.label);
+  const dataRows = filtered.map(row => columns.map(c => formatCell(row, c)));
+  const aoa = [headerRow].concat(dataRows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Платежи');
+  XLSX.writeFile(wb, 'payments_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
 function setupExport() {
   const exportBtn = document.getElementById('exportPayments');
   if (!exportBtn) return;
 
   exportBtn.addEventListener('click', () => {
-    // В прототипе просто показываем сообщение в консоль
-    console.log('Функция выгрузки в CSV/Excel будет реализована в полной версии');
+    if (typeof showExportFormatDialog !== 'function') {
+      exportPaymentsToCsv();
+      return;
+    }
+    showExportFormatDialog({
+      csv: exportPaymentsToCsv,
+      xlsx: exportPaymentsToExcel
+    });
   });
 }
 
@@ -392,28 +492,17 @@ function setupPowerBI() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    console.log('DOMContentLoaded - payments page');
-    
-    // Загружаем данные с API
     await loadPayments();
-    
-    console.log('Payments data ready:', paymentsData ? paymentsData.length : 0, 'items');
-    
-    // Инициализируем фильтр (он вызовет renderPayments)
-    console.log('Calling setupFilter...');
-    setupFilter();
-    console.log('setupFilter completed');
-    
-    console.log('Calling setupExport...');
-    setupExport();
-    console.log('setupExport completed');
-    
-    console.log('Calling setupPowerBI...');
-    setupPowerBI();
-    console.log('setupPowerBI completed');
   } catch (error) {
-    console.error('Error in DOMContentLoaded:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Ошибка загрузки платежей:', error);
+    paymentsData = [];
+  }
+  try {
+    setupFilter();
+    setupExport();
+    setupPowerBI();
+  } catch (error) {
+    console.error('Ошибка инициализации страницы:', error);
   }
 });
 

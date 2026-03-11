@@ -25,6 +25,7 @@ from .models import (
     Ticket, TicketMessage, PersonalData, AccountBalance
 )
 from .utils import calculate_price_with_discounts
+from .services import complete_balance_topup_payment
 
 logger = logging.getLogger(__name__)
 
@@ -212,23 +213,6 @@ class AccountBalanceAPIView(APIView):
         })
 
 
-def _complete_balance_topup_payment(payment):
-    """Завершить платёж пополнения: обновить баланс и статус. Вызывать при успешной оплате в ЮKassa."""
-    if payment.status == 'completed':
-        return
-    if payment.payment_type != 'balance_topup':
-        return
-    balance_obj, _ = AccountBalance.objects.get_or_create(
-        user=payment.user,
-        defaults={'balance': Decimal('0.00')}
-    )
-    balance_obj.balance += payment.amount
-    balance_obj.save()
-    payment.status = 'completed'
-    payment.payment_method = 'yookassa'
-    payment.save(update_fields=['status', 'payment_method', 'updated_at'])
-
-
 @method_decorator(login_required, name='dispatch')
 class BalanceTopUpAPIView(APIView):
     """API для пополнения счёта через ЮKassa"""
@@ -278,7 +262,7 @@ class BalanceTopUpAPIView(APIView):
             # Режим без ЮKassa: сразу завершаем (для разработки)
             payment.payment_method = 'demo'
             payment.save(update_fields=['payment_method'])
-            _complete_balance_topup_payment(payment)
+            complete_balance_topup_payment(payment)
             balance_obj = AccountBalance.objects.get(user=request.user)
             return Response({
                 'success': True,
@@ -346,7 +330,6 @@ class BalanceTopUpAPIView(APIView):
             })
         except Exception as e:
             logger.exception('YooKassa create payment failed: %s', e)
-            err_msg = 'Ошибка платёжной системы. Попробуйте позже.'
             err_str = str(e).lower()
             if 'invalid_credentials' in err_str or 'unauthorized' in type(e).__name__.lower():
                 err_msg = (
@@ -355,11 +338,21 @@ class BalanceTopUpAPIView(APIView):
                     'в Настройках → Ключи API скопируйте актуальный секретный ключ (при необходимости выпустите новый). '
                     'Обновите YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY в .env и перезапустите приложение.'
                 )
-            elif django_settings.DEBUG:
-                err_msg = f'{err_msg} ({type(e).__name__}: {e})'
+                return Response({'error': err_msg}, status=status.HTTP_502_BAD_GATEWAY)
+            # Таймаут/временная ошибка API — ставим задачу на повторное создание платежа в фоне
+            from .tasks import retry_create_yookassa_payment_task
+            return_url = request.build_absolute_uri(
+                getattr(django_settings, 'YOOKASSA_RETURN_PATH', '/payment/yookassa/return/') + f'?payment_id={payment.id}'
+            )
+            retry_create_yookassa_payment_task.delay(payment.id, return_url)
             return Response(
-                {'error': err_msg},
-                status=status.HTTP_502_BAD_GATEWAY
+                {
+                    'success': True,
+                    'payment_id': payment.id,
+                    'confirmation_url': None,
+                    'message': 'Платёж создаётся в фоне. Обновите страницу через минуту или проверьте раздел «Платежи» — там появится ссылка на оплату.',
+                },
+                status=status.HTTP_202_ACCEPTED,
             )
 
 
@@ -406,17 +399,33 @@ def yookassa_webhook_view(request):
     if status_val != 'succeeded' or not yoo_id:
         return HttpResponse(status=200)
 
-    # Находим наш платёж по transaction_id (id в ЮKassa)
+    # Находим наш платёж: по transaction_id (id в ЮKassa) или по metadata.payment_id (запасной вариант)
     payment = Payment.objects.filter(
         transaction_id=str(yoo_id),
         payment_type='balance_topup',
         status='pending',
     ).first()
     if not payment:
-        logger.warning('YooKassa webhook: payment not found for yoo_id=%s', yoo_id)
-        return HttpResponse(status=200)
+        metadata = payment_data.get('metadata') or {}
+        our_payment_id = metadata.get('payment_id')
+        if our_payment_id:
+            try:
+                payment = Payment.objects.filter(
+                    id=int(our_payment_id),
+                    payment_type='balance_topup',
+                    status='pending',
+                ).first()
+            except (ValueError, TypeError):
+                pass
+        if not payment:
+            logger.warning(
+                'YooKassa webhook: payment not found for yoo_id=%s, metadata=%s',
+                yoo_id, metadata,
+            )
+            return HttpResponse(status=200)
 
-    _complete_balance_topup_payment(payment)
+    # Обрабатываем синхронно, чтобы баланс обновился сразу и не зависеть от очереди Celery
+    complete_balance_topup_payment(payment)
     logger.info('YooKassa webhook: completed payment id=%s (yoo_id=%s)', payment.id, yoo_id)
     return HttpResponse(status=200)
 
@@ -493,7 +502,6 @@ class CabinetDetailAPIView(APIView):
                 {'error': 'Кабинет не найден'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        _expire_subscriptions_for_user(request.user)
         subscriptions = cabinet.subscriptions.all()
         subscriptions_data = [{
             'id': sub.id,
@@ -551,25 +559,13 @@ class CabinetDetailAPIView(APIView):
             )
 
 
-def _expire_subscriptions_for_user(user):
-    """Перевести активные подписки с истёкшим периодом в статус «Ожидает оплаты»."""
-    cabinets = Cabinet.objects.filter(user=user)
-    subs = Subscription.objects.filter(
-        cabinet__in=cabinets,
-        status='active',
-        end_date__lt=timezone.now()
-    )
-    subs.update(status='pending')
-
-
 @method_decorator(login_required, name='dispatch')
 class SubscriptionListAPIView(APIView):
     """API для работы с подписками"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """Получить список подписок пользователя"""
-        _expire_subscriptions_for_user(request.user)
+        """Получить список подписок пользователя (истечение подписок по расписанию — задача expire_subscriptions_task)"""
         cabinets = Cabinet.objects.filter(user=request.user)
         subscriptions = Subscription.objects.filter(cabinet__in=cabinets)
         
@@ -697,6 +693,7 @@ class PaymentListAPIView(APIView):
             'description': payment.description,
             'created_at': payment.created_at.isoformat(),
             'subscription_id': payment.subscription.id if payment.subscription else None,
+            'confirmation_url': payment.confirmation_url or None,
         } for payment in payments]
         return Response(data)
 

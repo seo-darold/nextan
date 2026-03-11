@@ -301,6 +301,7 @@ class Payment(models.Model):
     )
     payment_method = models.CharField(max_length=100, blank=True, verbose_name='Способ оплаты')
     transaction_id = models.CharField(max_length=200, blank=True, verbose_name='ID транзакции')
+    confirmation_url = models.URLField(max_length=500, blank=True, verbose_name='URL для перехода на оплату')
     description = models.TextField(blank=True, verbose_name='Описание')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлен')

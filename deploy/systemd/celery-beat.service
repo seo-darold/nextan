@@ -1,0 +1,18 @@
+[Unit]
+Description=Celery Beat — Nextan
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=user
+Group=user
+WorkingDirectory=/home/user/nextan
+Environment="PATH=/home/user/nextan/env/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+ExecStart=/home/user/nextan/env/bin/celery -A config beat -l info
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'dashboards.apps.DashboardsConfig',
     'cart.apps.CartConfig',
     'blog.apps.BlogConfig',
+    'django_celery_beat',
 ]
 
 SITE_ID = 1
@@ -245,3 +246,23 @@ YOOKASSA_SHOP_ID = os.environ.get('YOOKASSA_SHOP_ID', '').strip()
 YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', '').strip()
 # URL возврата после оплаты (без домена — подставится request.build_absolute_uri)
 YOOKASSA_RETURN_PATH = '/payment/yookassa/return/'
+
+# Celery: брокер и результат. В .env задайте CELERY_BROKER_URL (по умолчанию redis://localhost:6379/0)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+# Повторы при сбое (для задач с внешними API/почтой)
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+
+# Celery Beat: периодические задачи (истечение подписок — раз в час)
+CELERY_BEAT_SCHEDULE = {
+    'expire-subscriptions-hourly': {
+        'task': 'dashboards.tasks.expire_subscriptions_task',
+        'schedule': 3600.0,  # каждые 60 минут
+    },
+}

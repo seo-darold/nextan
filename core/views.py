@@ -10,7 +10,6 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
-from django.core.mail import send_mail
 from django.core.signing import TimestampSigner
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -280,10 +279,9 @@ def password_reset_request_view(request):
                 reverse('core:password_reset_confirm', kwargs={'token': reset_token.token})
             )
             
-            # Отправляем email
-            try:
-                subject = 'Восстановление пароля — НекстАналитика'
-                message = f'''
+            # Отправляем email в фоне (не блокируем ответ пользователю)
+            subject = 'Восстановление пароля — НекстАналитика'
+            message = f'''
 Здравствуйте!
 
 Вы запросили восстановление пароля для аккаунта на сайте НекстАналитика.
@@ -298,17 +296,8 @@ def password_reset_request_view(request):
 С уважением,
 Команда НекстАналитика
 '''
-                
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                # Логируем ошибку, но не раскрываем её пользователю
-                print(f"Error sending password reset email: {e}")
+            from core.tasks import send_password_reset_email
+            send_password_reset_email.delay(subject, message, user.email)
     
     # Всегда возвращаем успешный ответ для безопасности
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
